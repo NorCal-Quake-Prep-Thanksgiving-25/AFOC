@@ -6,6 +6,9 @@ from importlib import import_module
 from pathlib import Path
 from typing import Iterable, Sequence
 
+import argparse
+import textwrap
+
 
 @dataclass(frozen=True)
 class FileInfo:
@@ -41,6 +44,14 @@ class SystemOverview:
         }
 
 
+@dataclass(frozen=True)
+class FilePreview:
+    """Preview snippet for a file."""
+
+    path: str
+    preview: str
+
+
 def _iter_python_files(base_dir: Path) -> Iterable[Path]:
     for path in sorted(base_dir.rglob("*.py")):
         if "__pycache__" in path.parts:
@@ -57,7 +68,11 @@ def _top_n_by_size(paths: Iterable[Path], limit: int, base_dir: Path) -> list[Fi
     return file_infos[:limit]
 
 
-def generate_system_overview(base_dir: str | Path | None = None, *, key_files: int = 5) -> SystemOverview:
+def generate_system_overview(
+    base_dir: str | Path | None = None,
+    *,
+    key_files: int = 5,
+) -> SystemOverview:
     """Create a concise overview of the AFoC package structure."""
 
     resolved_base = Path(base_dir) if base_dir is not None else Path(__file__).resolve().parents[1]
@@ -79,7 +94,78 @@ def generate_system_overview(base_dir: str | Path | None = None, *, key_files: i
     )
 
 
-def print_system_overview(base_dir: str | Path | None = None) -> SystemOverview:
+def _load_preview_text(path: Path, lines: int) -> str:
+    try:
+        with path.open("r", encoding="utf-8") as stream:
+            snippet_lines: list[str] = []
+            for _ in range(lines):
+                line = stream.readline()
+                if not line:
+                    break
+                snippet_lines.append(line)
+    except FileNotFoundError:
+        return "<file missing>"
+    except UnicodeDecodeError:
+        return "<binary content>"
+    return "".join(snippet_lines)
+
+
+def generate_preview_view(
+    base_dir: str | Path | None = None,
+    *,
+    max_files: int = 3,
+    lines: int = 8,
+) -> list[FilePreview]:
+    """Produce previews for the largest Python files in the package."""
+
+    resolved_base = Path(base_dir) if base_dir is not None else Path(__file__).resolve().parents[1]
+    python_paths = list(_iter_python_files(resolved_base))
+    top_files = _top_n_by_size(python_paths, max_files, resolved_base)
+
+    previews: list[FilePreview] = []
+    for info in top_files:
+        preview_text = _load_preview_text(resolved_base / info.path, lines)
+        previews.append(
+            FilePreview(
+                path=info.path,
+                preview=preview_text,
+            )
+        )
+    return previews
+
+
+def print_preview_view(
+    base_dir: str | Path | None = None,
+    *,
+    max_files: int = 3,
+    lines: int = 8,
+) -> list[FilePreview]:
+    """Print a preview of the key files and return the structured data."""
+
+    previews = generate_preview_view(base_dir, max_files=max_files, lines=lines)
+
+    if not previews:
+        print("=== PREVIEW VIEW ===")
+        print("<no python files discovered>")
+        return previews
+
+    print("=== PREVIEW VIEW ===")
+    for preview in previews:
+        print(f"--- {preview.path} (first {lines} lines) ---")
+        if preview.preview:
+            print(textwrap.indent(preview.preview.rstrip(), "    "))
+        else:
+            print("    <empty file>")
+    return previews
+
+
+def print_system_overview(
+    base_dir: str | Path | None = None,
+    *,
+    include_preview: bool = False,
+    preview_files: int = 3,
+    preview_lines: int = 8,
+) -> SystemOverview:
     """Print a human friendly overview and return the structured data."""
 
     overview = generate_system_overview(base_dir)
@@ -98,8 +184,51 @@ def print_system_overview(base_dir: str | Path | None = None) -> SystemOverview:
     else:
         print("❌ EliteAIEnterprisePro import failed")
 
+    if include_preview:
+        print_preview_view(
+            base_dir,
+            max_files=preview_files,
+            lines=preview_lines,
+        )
+
     return overview
 
 
+def _main(argv: Sequence[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(description="Inspect the EliteAI codebase")
+    parser.add_argument(
+        "--base-dir",
+        type=str,
+        help="Override the base directory used for inspection",
+    )
+    parser.add_argument(
+        "--preview",
+        action="store_true",
+        help="Include a preview view of the largest Python modules",
+    )
+    parser.add_argument(
+        "--preview-files",
+        type=int,
+        default=3,
+        help="Number of files to preview when --preview is supplied",
+    )
+    parser.add_argument(
+        "--preview-lines",
+        type=int,
+        default=8,
+        help="Number of lines to show for each file preview",
+    )
+
+    args = parser.parse_args(argv)
+
+    print_system_overview(
+        args.base_dir,
+        include_preview=args.preview,
+        preview_files=args.preview_files,
+        preview_lines=args.preview_lines,
+    )
+    return 0
+
+
 if __name__ == "__main__":
-    print_system_overview()
+    raise SystemExit(_main())

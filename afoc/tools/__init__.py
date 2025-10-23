@@ -5,12 +5,23 @@ from importlib import import_module
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:  # pragma: no cover - import only for typing
-    from .overview import FileInfo, SystemOverview, generate_system_overview, print_system_overview
+    from .overview import (
+        FileInfo,
+        FilePreview,
+        SystemOverview,
+        generate_preview_view,
+        generate_system_overview,
+        print_preview_view,
+        print_system_overview,
+    )
 
 __all__ = [
     "FileInfo",
+    "FilePreview",
     "SystemOverview",
+    "generate_preview_view",
     "generate_system_overview",
+    "print_preview_view",
     "print_system_overview",
 ]
 

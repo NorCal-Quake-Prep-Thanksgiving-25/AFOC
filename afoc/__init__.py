@@ -9,7 +9,15 @@ from .elite_enterprise import EliteAIEnterprisePro, deploy_elite_enterprise_syst
 from .models import GodTierAIEnterpriseSystem
 
 if TYPE_CHECKING:  # pragma: no cover - import for static analysis only
-    from .tools import FileInfo, SystemOverview, generate_system_overview, print_system_overview
+    from .tools import (
+        FileInfo,
+        FilePreview,
+        SystemOverview,
+        generate_preview_view,
+        generate_system_overview,
+        print_preview_view,
+        print_system_overview,
+    )
 
 __all__ = [
     "AutonomousFiscalOrchestrationCore",
@@ -17,15 +25,21 @@ __all__ = [
     "EliteAIEnterprisePro",
     "deploy_elite_enterprise_system",
     "FileInfo",
+    "FilePreview",
     "SystemOverview",
+    "generate_preview_view",
     "generate_system_overview",
+    "print_preview_view",
     "print_system_overview",
 ]
 
 _TOOLS_EXPORTS = {
     "FileInfo",
+    "FilePreview",
     "SystemOverview",
+    "generate_preview_view",
     "generate_system_overview",
+    "print_preview_view",
     "print_system_overview",
 }
 
