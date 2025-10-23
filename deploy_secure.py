@@ -41,7 +41,26 @@ def deploy_with_security() -> None:
         logger.info("✅ COMMERCIAL SYSTEM SECURED AND DEPLOYED")
     else:
         logger.error("❌ SECURITY ISSUES - DEPLOYMENT BLOCKED")
+
+        issues: list[str] = []
+        if scan_results.secrets_detected:
+            issues.append(
+                "secrets detected: " + ", ".join(sorted(scan_results.secrets_detected))
+            )
+        if scan_results.ip_exposure:
+            issues.append(
+                "ip exposure: " + ", ".join(sorted(scan_results.ip_exposure))
+            )
+        if not scan_results.obfuscation_status:
+            issues.append("obfuscation incomplete")
+        if not scan_results.legal_headers:
+            issues.append("legal headers missing")
+
+        if issues:
+            logger.error("Scan issues: %s", "; ".join(issues))
+
         scanner.auto_fix_issues()
+        raise SystemExit(1)
 
 
 if __name__ == "__main__":
