@@ -10,8 +10,11 @@ from security.pre_push_scanner import PrePushSecurityScanner
 from security.setup import CommercialRepositorySetup
 
 
-def deploy_with_security() -> None:
-    """One-command secure deployment."""
+def deploy_with_security() -> int:
+    """One-command secure deployment.
+
+    Returns an exit code so callers can detect failure scenarios.
+    """
 
     logging.basicConfig(level=logging.INFO)
     logger = logging.getLogger("deploy_secure")
@@ -39,6 +42,7 @@ def deploy_with_security() -> None:
             logger.warning("Audit issues detected: %s", "; ".join(audit_result.issues))
         secure_git_push()
         logger.info("✅ COMMERCIAL SYSTEM SECURED AND DEPLOYED")
+        return 0
     else:
         logger.error("❌ SECURITY ISSUES - DEPLOYMENT BLOCKED")
 
@@ -60,9 +64,11 @@ def deploy_with_security() -> None:
             logger.error("Scan issues: %s", "; ".join(issues))
 
         scanner.auto_fix_issues()
-        raise SystemExit(1)
+        logger.info("Auto-fix routines executed; manual review still required.")
+
+        return 1
 
 
 if __name__ == "__main__":
-    deploy_with_security()
+    raise SystemExit(deploy_with_security())
 
