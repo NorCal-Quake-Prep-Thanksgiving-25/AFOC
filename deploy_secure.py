@@ -10,8 +10,15 @@ from security.pre_push_scanner import PrePushSecurityScanner
 from security.setup import CommercialRepositorySetup
 
 
-def deploy_with_security() -> None:
-    """One-command secure deployment."""
+def deploy_with_security() -> bool:
+    """One-command secure deployment.
+
+    Returns
+    -------
+    bool
+        ``True`` when the deployment finishes successfully, ``False`` when
+        security issues block the deployment.
+    """
 
     logging.basicConfig(level=logging.INFO)
     logger = logging.getLogger("deploy_secure")
@@ -39,30 +46,31 @@ def deploy_with_security() -> None:
             logger.warning("Audit issues detected: %s", "; ".join(audit_result.issues))
         secure_git_push()
         logger.info("✅ COMMERCIAL SYSTEM SECURED AND DEPLOYED")
-    else:
-        logger.error("❌ SECURITY ISSUES - DEPLOYMENT BLOCKED")
+        return True
 
-        issues: list[str] = []
-        if scan_results.secrets_detected:
-            issues.append(
-                "secrets detected: " + ", ".join(sorted(scan_results.secrets_detected))
-            )
-        if scan_results.ip_exposure:
-            issues.append(
-                "ip exposure: " + ", ".join(sorted(scan_results.ip_exposure))
-            )
-        if not scan_results.obfuscation_status:
-            issues.append("obfuscation incomplete")
-        if not scan_results.legal_headers:
-            issues.append("legal headers missing")
+    logger.error("❌ SECURITY ISSUES - DEPLOYMENT BLOCKED")
 
-        if issues:
-            logger.error("Scan issues: %s", "; ".join(issues))
+    issues: list[str] = []
+    if scan_results.secrets_detected:
+        issues.append(
+            "secrets detected: " + ", ".join(sorted(scan_results.secrets_detected))
+        )
+    if scan_results.ip_exposure:
+        issues.append(
+            "ip exposure: " + ", ".join(sorted(scan_results.ip_exposure))
+        )
+    if not scan_results.obfuscation_status:
+        issues.append("obfuscation incomplete")
+    if not scan_results.legal_headers:
+        issues.append("legal headers missing")
 
-        scanner.auto_fix_issues()
-        raise SystemExit(1)
+    if issues:
+        logger.error("Scan issues: %s", "; ".join(issues))
+
+    scanner.auto_fix_issues()
+    return False
 
 
 if __name__ == "__main__":
-    deploy_with_security()
+    raise SystemExit(0 if deploy_with_security() else 1)
 
