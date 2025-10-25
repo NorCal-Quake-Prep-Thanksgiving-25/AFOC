@@ -28,12 +28,15 @@ def test_forecast_agent_produces_confident_predictions() -> None:
     result = asyncio.run(agent.forecast(request))
     assert len(result.predictions) == 4
     assert len(result.ensemble_predictions) == 4
+    assert len(result.seasonal_predictions) == 4 or not result.seasonal_predictions
     assert result.upper >= result.mean >= result.lower
     # Ensure intervals are serialized for downstream APIs
     assert all({"mean", "lower", "upper"} <= interval.keys() for interval in result.intervals)
     assert isinstance(result.diagnostics, ForecastDiagnostics)
     assert result.diagnostics.confidence_bandwidth > 0
     assert 0.0 <= result.diagnostics.anomaly_rate <= 1.0
+    assert 0.0 <= result.diagnostics.ml_anomaly_rate <= 1.0
+    assert result.diagnostics.ensemble_divergence >= 0.0
 
 
 def test_adaptive_smoother_trend_awareness() -> None:

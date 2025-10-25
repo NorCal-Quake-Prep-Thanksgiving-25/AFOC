@@ -9,6 +9,16 @@ import random
 from statistics import NormalDist
 from typing import Dict, Iterable, List, Mapping, Sequence, Tuple
 
+try:  # pragma: no cover - optional heavy dependency
+    from sklearn.ensemble import IsolationForest  # type: ignore
+except Exception:  # pragma: no cover - fallback for minimal environments
+    IsolationForest = None  # type: ignore
+
+try:  # pragma: no cover - optional heavy dependency
+    from statsmodels.tsa.holtwinters import ExponentialSmoothing  # type: ignore
+except Exception:  # pragma: no cover - fallback for minimal environments
+    ExponentialSmoothing = None  # type: ignore
+
 
 @dataclass
 class ConfidenceInterval:
@@ -140,6 +150,32 @@ class StreamingAnomalyDetector:
             return False
         z = abs(value - mean) / std
         return z > self._threshold
+
+
+class IsolationForestDetector:
+    """Sklearn-powered anomaly detector for richer seasonality awareness."""
+
+    def __init__(
+        self,
+        *,
+        contamination: float = 0.05,
+        random_state: int | None = 7,
+    ) -> None:
+        if IsolationForest is None:  # pragma: no cover - depends on optional dependency
+            raise RuntimeError("scikit-learn is required for IsolationForestDetector")
+        if not 0.0 < contamination < 0.5:
+            raise ValueError("contamination must be within (0, 0.5)")
+        self._model = IsolationForest(
+            contamination=contamination,
+            random_state=random_state,
+        )
+
+    def detect(self, samples: Sequence[float]) -> List[int]:
+        if not samples:
+            return []
+        reshaped = [[float(value)] for value in samples]
+        predictions = self._model.fit_predict(reshaped)
+        return [index for index, value in enumerate(predictions) if value == -1]
 
 
 @dataclass
@@ -290,3 +326,42 @@ class AdaptiveSmoother:
     @property
     def state(self) -> Tuple[float, float]:
         return self._level, self._trend
+
+
+class StatsmodelsForecaster:
+    """Wraps statsmodels' exponential smoothing for seasonal intelligence."""
+
+    def __init__(
+        self,
+        *,
+        seasonal_periods: int = 12,
+        seasonal: str = "add",
+        trend: str = "add",
+    ) -> None:
+        if ExponentialSmoothing is None:  # pragma: no cover - depends on optional dependency
+            raise RuntimeError("statsmodels is required for StatsmodelsForecaster")
+        if seasonal_periods <= 0:
+            raise ValueError("seasonal_periods must be positive")
+        self._seasonal_periods = seasonal_periods
+        self._seasonal = seasonal
+        self._trend = trend
+        self._fitted = None
+
+    def fit(self, samples: Sequence[float]) -> None:
+        if not samples:
+            self._fitted = None
+            return
+        model = ExponentialSmoothing(
+            list(float(value) for value in samples),
+            trend=self._trend,
+            seasonal=self._seasonal,
+            seasonal_periods=self._seasonal_periods,
+        )
+        self._fitted = model.fit(optimized=True)
+
+    def forecast(self, steps: int) -> List[float]:
+        steps = max(1, int(steps))
+        if self._fitted is None:
+            return [0.0 for _ in range(steps)]
+        forecast = self._fitted.forecast(steps)
+        return [float(value) for value in forecast]
