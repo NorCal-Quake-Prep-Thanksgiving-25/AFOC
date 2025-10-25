@@ -1,0 +1,12 @@
+# Enhanced gitignore for commercial EliteAI platform
+secrets/
+keys/
+*.pem
+*.key
+*.p12
+.env.local
+.env.secure
+.env.secure.local
+*.log
+__pycache__/
+*.pyc

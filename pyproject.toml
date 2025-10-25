@@ -1,0 +1,29 @@
+[project]
+name = "afoc"
+version = "0.0.0"
+description = "Autonomous Fiscal Orchestration Core"
+requires-python = ">=3.12"
+
+[build-system]
+requires = ["setuptools>=67", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.black]
+line-length = 100
+target-version = ["py312"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E9", "F63", "F7", "F82"]
+
+[tool.mypy]
+python_version = "3.12"
+ignore_missing_imports = true
+allow_redefinition = true
+follow_imports = "skip"
+show_error_codes = true
+warn_unused_configs = true
+warn_unused_ignores = false
