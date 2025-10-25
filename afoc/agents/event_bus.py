@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 from collections import defaultdict
+from dataclasses import dataclass
 from typing import Awaitable, Callable, DefaultDict, List
 
 from ..pydantic_compat import BaseModel
@@ -19,11 +20,21 @@ class AgentEvent(BaseModel):
 EventHandler = Callable[[AgentEvent], Awaitable[None]]
 
 
+@dataclass
+class EventBusMetrics:
+    """Runtime metrics captured for observability."""
+
+    published: int = 0
+    delivered: int = 0
+    subscribers: int = 0
+
+
 class AsyncEventBus:
     """Asyncio-powered pub/sub bus for coordinating agents."""
 
     def __init__(self) -> None:
         self._subscribers: DefaultDict[str, List[EventHandler]] = defaultdict(list)
+        self._metrics = EventBusMetrics()
         try:
             self._loop = asyncio.get_event_loop()
         except RuntimeError:  # pragma: no cover - fallback for new threads
@@ -32,11 +43,14 @@ class AsyncEventBus:
 
     def subscribe(self, event_type: str, handler: EventHandler) -> None:
         self._subscribers[event_type].append(handler)
+        self._metrics.subscribers = sum(len(items) for items in self._subscribers.values())
 
     async def publish(self, event: AgentEvent) -> None:
         handlers = list(self._subscribers.get(event.type, ()))
         if not handlers:
             return
+        self._metrics.published += 1
+        self._metrics.delivered += len(handlers)
         await asyncio.gather(*(handler(event) for handler in handlers))
 
     def publish_sync(self, event: AgentEvent) -> None:
@@ -46,3 +60,10 @@ class AsyncEventBus:
             await self.publish(event)
 
         asyncio.run(_runner())
+
+    def metrics(self) -> EventBusMetrics:
+        return EventBusMetrics(
+            published=self._metrics.published,
+            delivered=self._metrics.delivered,
+            subscribers=self._metrics.subscribers,
+        )

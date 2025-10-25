@@ -1,10 +1,11 @@
-"""ROI engine with reinforcement learning inspired allocator."""
+"""ROI engine powered by a reinforcement-learning allocator."""
 
 from __future__ import annotations
 
-from typing import Dict, List
+from typing import Dict, List, Mapping
 
 import random
+from ..intelligence import ReinforcementAllocator
 from ..pydantic_compat import BaseModel, Field
 
 from .event_bus import AgentEvent, AsyncEventBus
@@ -22,14 +23,19 @@ class OptimizationResponse(BaseModel):
     policy: Dict[str, float]
     selected_action: str
     expected_reward: float
+    policy_confidence: float
+    advantage: float
 
 
 class ROIEngine:
     """Simple Q-learning loop to balance allocations."""
 
-    def __init__(self, event_bus: AsyncEventBus | None = None) -> None:
+    def __init__(
+        self, event_bus: AsyncEventBus | None = None, *, rng: random.Random | None = None
+    ) -> None:
         self._event_bus = event_bus
-        self._q_values: Dict[str, float] = {}
+        self._rng = rng or random.Random()
+        self._allocator = ReinforcementAllocator(rng=self._rng)
         if event_bus:
             event_bus.subscribe("optimization.completed", self._noop)
 
@@ -38,21 +44,17 @@ class ROIEngine:
         event_bus.subscribe("optimization.completed", self._noop)
 
     async def optimize(self, request: OptimizationRequest) -> OptimizationResponse:
-        for action, reward in zip(request.actions, request.reward_history):
-            self._q_values.setdefault(action, 0.0)
-            self._q_values[action] = self._q_values[action] * 0.8 + 0.2 * reward
-        if random.random() < request.exploration or not self._q_values:  # nosec B311
-            action = random.choice(request.actions)  # nosec B311
-        else:
-
-            def value_for(candidate: str) -> float:
-                return self._q_values.get(candidate, float("-inf"))
-
-            action = max(self._q_values, key=value_for)
-        expected = self._q_values.get(action, 0.0)
-        policy = self._softmax_policy(request.actions)
+        rewards = self._zip_rewards(request.actions, request.reward_history)
+        policy = self._allocator.update_policy(rewards)
+        action = self._allocator.select_action(request.actions, exploration=request.exploration)
+        expected = self._expected_return(policy, rewards)
+        advantage = rewards.get(action, expected) - expected
         response = OptimizationResponse(
-            policy=policy, selected_action=action, expected_reward=expected
+            policy=policy,
+            selected_action=action,
+            expected_reward=expected,
+            policy_confidence=policy.get(action, 0.0),
+            advantage=advantage,
         )
         if self._event_bus:
             await self._event_bus.publish(
@@ -60,12 +62,19 @@ class ROIEngine:
             )
         return response
 
-    def _softmax_policy(self, actions: List[str]) -> Dict[str, float]:
-        scores = [self._q_values.get(action, 0.0) for action in actions]
-        max_score = max(scores) if scores else 0.0
-        exps = [pow(2.71828, score - max_score) for score in scores]
-        total = sum(exps) or 1.0
-        return {action: value / total for action, value in zip(actions, exps)}
+    def _zip_rewards(self, actions: List[str], rewards: List[float]) -> Mapping[str, float]:
+        return {action: float(reward) for action, reward in zip(actions, rewards)}
+
+    def _expected_return(self, policy: Mapping[str, float], rewards: Mapping[str, float]) -> float:
+        return sum(policy.get(action, 0.0) * rewards.get(action, 0.0) for action in policy)
 
     async def _noop(self, event: AgentEvent) -> None:  # pragma: no cover - async hook
         return None
+
+    @property
+    def policy_history(self) -> List[Mapping[str, float]]:
+        return self._allocator.history
+
+    @property
+    def preference_state(self) -> Mapping[str, float]:
+        return self._allocator.state

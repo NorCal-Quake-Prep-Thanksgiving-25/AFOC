@@ -9,6 +9,7 @@ from .agents import (
     AllocationRequest,
     AllocationResponse,
     AsyncEventBus,
+    EventBusMetrics,
     BudgetAgent,
     ForecastAgent,
     ForecastRequest,
@@ -208,6 +209,11 @@ class ComposableIntelligenceCore:
             "fiscal_average": summary.fiscal_average,
             "total_budget_consumed": summary.total_budget_consumed,
         }
+
+    def get_event_bus_metrics(self) -> EventBusMetrics:
+        """Expose event bus metrics for observability surfaces."""
+
+        return self.event_bus.metrics()
 
     # ------------------------------------------------------------------
     # Utilities

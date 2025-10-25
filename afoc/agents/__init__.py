@@ -2,7 +2,7 @@
 
 from .base import AllocationProtocol, ForecastProtocol, OptimizationProtocol, SecurityProtocol
 from .budget import AllocationRequest, AllocationResponse, BudgetAgent
-from .event_bus import AgentEvent, AsyncEventBus
+from .event_bus import AgentEvent, AsyncEventBus, EventBusMetrics
 from .forecast import ForecastAgent, ForecastRequest, ForecastResponse
 from .roi import OptimizationRequest, OptimizationResponse, ROIEngine
 from .security import SecurityAlert, SecurityGuardian
@@ -10,6 +10,7 @@ from .security import SecurityAlert, SecurityGuardian
 __all__ = [
     "AgentEvent",
     "AsyncEventBus",
+    "EventBusMetrics",
     "AllocationProtocol",
     "ForecastProtocol",
     "OptimizationProtocol",
