@@ -7,7 +7,7 @@ from dataclasses import dataclass, field
 import math
 import random
 from statistics import NormalDist
-from typing import Dict, Iterable, List, Mapping, Sequence
+from typing import Dict, Iterable, List, Mapping, Sequence, Tuple
 
 
 @dataclass
@@ -42,13 +42,16 @@ class BayesianForecaster:
         self._kappa = float(prior_strength)
         self._alpha = float(prior_alpha)
         self._beta = float(prior_beta)
+        self._history: List[ConfidenceInterval] = []
 
     def update(self, samples: Sequence[float], confidence: float = 0.9) -> ConfidenceInterval:
         if not samples:
             radius = self._predictive_radius(confidence)
-            return ConfidenceInterval(
+            interval = ConfidenceInterval(
                 mean=self._mu, lower=max(0.0, self._mu - radius), upper=self._mu + radius
             )
+            self._history.append(interval)
+            return interval
 
         n = float(len(samples))
         sample_mean = sum(samples) / n
@@ -71,7 +74,9 @@ class BayesianForecaster:
         radius = self._predictive_radius(confidence)
         lower = max(0.0, mu_n - radius)
         upper = mu_n + radius
-        return ConfidenceInterval(mean=mu_n, lower=lower, upper=upper)
+        interval = ConfidenceInterval(mean=mu_n, lower=lower, upper=upper)
+        self._history.append(interval)
+        return interval
 
     def multi_step_forecast(self, steps: int, confidence: float = 0.9) -> List[ConfidenceInterval]:
         steps = max(1, int(steps))
@@ -92,6 +97,10 @@ class BayesianForecaster:
         z = NormalDist().inv_cdf((1.0 + clamped) / 2.0)
         scale = math.sqrt((self._beta * (self._kappa + 1.0)) / (self._alpha * self._kappa))
         return z * scale
+
+    @property
+    def posterior_history(self) -> List[ConfidenceInterval]:
+        return list(self._history)
 
 
 class StreamingAnomalyDetector:
@@ -160,7 +169,7 @@ class ReinforcementAllocator:
         self._discount = discount
         self._temperature = temperature
         self._entropy_weight = entropy_weight
-        self._rng = rng or random.Random()
+        self._rng = rng or random.Random()  # nosec B311 - deterministic seeding allowed
         self._history: List[Mapping[str, float]] = []
 
     def update_policy(self, action_rewards: Mapping[str, float]) -> Mapping[str, float]:
@@ -219,3 +228,65 @@ class ReinforcementAllocator:
     @property
     def state(self) -> Mapping[str, float]:
         return dict(self._state.preferences)
+
+
+class AdaptiveSmoother:
+    """Holt-style exponential smoother for ensemble forecasting."""
+
+    def __init__(
+        self,
+        *,
+        alpha: float = 0.5,
+        beta: float = 0.3,
+        dampening: float = 0.9,
+    ) -> None:
+        if not 0.0 < alpha <= 1.0:
+            raise ValueError("alpha must be within (0, 1]")
+        if not 0.0 < beta <= 1.0:
+            raise ValueError("beta must be within (0, 1]")
+        if not 0.0 < dampening <= 1.0:
+            raise ValueError("dampening must be within (0, 1]")
+        self._alpha = alpha
+        self._beta = beta
+        self._dampening = dampening
+        self._level = 0.0
+        self._trend = 0.0
+        self._initialised = False
+
+    def reset(self) -> None:
+        self._level = 0.0
+        self._trend = 0.0
+        self._initialised = False
+
+    def update(self, series: Sequence[float]) -> Tuple[float, float]:
+        if not series:
+            return self._level, self._trend
+
+        iterator = iter(float(value) for value in series)
+        first = next(iterator)
+        if not self._initialised:
+            self._level = first
+            try:
+                second = next(iterator)
+                self._trend = second - first
+            except StopIteration:
+                self._trend = 0.0
+            self._initialised = True
+        prev_level = self._level
+        prev_trend = self._trend
+        for value in iterator:
+            prev_level, prev_trend = self._level, self._trend
+            self._level = self._alpha * value + (1 - self._alpha) * (prev_level + prev_trend)
+            raw_trend = self._beta * (self._level - prev_level) + (1 - self._beta) * prev_trend
+            self._trend = self._dampening * raw_trend
+        return self._level, self._trend
+
+    def forecast(self, steps: int) -> List[float]:
+        steps = max(1, int(steps))
+        if not self._initialised:
+            return [0.0 for _ in range(steps)]
+        return [self._level + (step + 1) * self._trend for step in range(steps)]
+
+    @property
+    def state(self) -> Tuple[float, float]:
+        return self._level, self._trend

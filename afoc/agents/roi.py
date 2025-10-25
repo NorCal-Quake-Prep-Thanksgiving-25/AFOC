@@ -34,7 +34,7 @@ class ROIEngine:
         self, event_bus: AsyncEventBus | None = None, *, rng: random.Random | None = None
     ) -> None:
         self._event_bus = event_bus
-        self._rng = rng or random.Random()
+        self._rng = rng or random.Random()  # nosec B311 - stochastic policy search
         self._allocator = ReinforcementAllocator(rng=self._rng)
         if event_bus:
             event_bus.subscribe("optimization.completed", self._noop)

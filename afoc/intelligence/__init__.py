@@ -1,6 +1,7 @@
 """Advanced predictive intelligence primitives used by the agents."""
 
 from .predictors import (
+    AdaptiveSmoother,
     BayesianForecaster,
     ConfidenceInterval,
     ReinforcementAllocator,
@@ -8,6 +9,7 @@ from .predictors import (
 )
 
 __all__ = [
+    "AdaptiveSmoother",
     "BayesianForecaster",
     "ConfidenceInterval",
     "ReinforcementAllocator",

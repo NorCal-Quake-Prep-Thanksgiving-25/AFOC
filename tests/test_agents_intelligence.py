@@ -10,10 +10,12 @@ from afoc.agents import (
     AsyncEventBus,
     EventBusMetrics,
     ForecastAgent,
+    ForecastDiagnostics,
     ForecastRequest,
     ROIEngine,
     OptimizationRequest,
 )
+from afoc.intelligence import AdaptiveSmoother
 
 
 def test_forecast_agent_produces_confident_predictions() -> None:
@@ -25,9 +27,23 @@ def test_forecast_agent_produces_confident_predictions() -> None:
     )
     result = asyncio.run(agent.forecast(request))
     assert len(result.predictions) == 4
+    assert len(result.ensemble_predictions) == 4
     assert result.upper >= result.mean >= result.lower
     # Ensure intervals are serialized for downstream APIs
     assert all({"mean", "lower", "upper"} <= interval.keys() for interval in result.intervals)
+    assert isinstance(result.diagnostics, ForecastDiagnostics)
+    assert result.diagnostics.confidence_bandwidth > 0
+    assert 0.0 <= result.diagnostics.anomaly_rate <= 1.0
+
+
+def test_adaptive_smoother_trend_awareness() -> None:
+    smoother = AdaptiveSmoother()
+    level, trend = smoother.update([10, 12, 14, 17])
+    assert level > 0
+    assert trend > 0
+    forecast = smoother.forecast(3)
+    assert len(forecast) == 3
+    assert forecast[0] < forecast[-1]
 
 
 def test_roi_engine_learns_preference_structure() -> None:
@@ -61,3 +77,6 @@ def test_event_bus_records_metrics() -> None:
     assert metrics.published == 1
     assert metrics.delivered == 1
     assert metrics.subscribers >= 1
+    assert metrics.last_event_type == "test"
+    assert metrics.avg_latency >= 0.0
+    assert metrics.max_latency >= metrics.avg_latency

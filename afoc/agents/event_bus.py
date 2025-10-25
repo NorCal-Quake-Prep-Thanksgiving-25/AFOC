@@ -5,7 +5,7 @@ from __future__ import annotations
 import asyncio
 from collections import defaultdict
 from dataclasses import dataclass
-from typing import Awaitable, Callable, DefaultDict, List
+from typing import Awaitable, Callable, DefaultDict, List, Optional
 
 from ..pydantic_compat import BaseModel
 
@@ -27,6 +27,9 @@ class EventBusMetrics:
     published: int = 0
     delivered: int = 0
     subscribers: int = 0
+    avg_latency: float = 0.0
+    max_latency: float = 0.0
+    last_event_type: Optional[str] = None
 
 
 class AsyncEventBus:
@@ -51,7 +54,13 @@ class AsyncEventBus:
             return
         self._metrics.published += 1
         self._metrics.delivered += len(handlers)
+        start = self._loop.time()
         await asyncio.gather(*(handler(event) for handler in handlers))
+        latency = max(self._loop.time() - start, 0.0)
+        total_latency = self._metrics.avg_latency * (self._metrics.published - 1) + latency
+        self._metrics.avg_latency = total_latency / max(self._metrics.published, 1)
+        self._metrics.max_latency = max(self._metrics.max_latency, latency)
+        self._metrics.last_event_type = event.type
 
     def publish_sync(self, event: AgentEvent) -> None:
         """Helper for sync callers."""
@@ -66,4 +75,7 @@ class AsyncEventBus:
             published=self._metrics.published,
             delivered=self._metrics.delivered,
             subscribers=self._metrics.subscribers,
+            avg_latency=self._metrics.avg_latency,
+            max_latency=self._metrics.max_latency,
+            last_event_type=self._metrics.last_event_type,
         )
