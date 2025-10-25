@@ -1,0 +1,22 @@
+# Core Python artefacts
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+
+# Virtual environments
+.venv/
+.env/
+
+# Security artifacts
+.env.secure
+.env.secure.local
+secrets/
+keys/
+*.pem
+*.key
+*.p12
+
+# Logs and reports
+*.log
+reports/
