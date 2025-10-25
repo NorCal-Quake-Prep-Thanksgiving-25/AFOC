@@ -12,6 +12,7 @@ self-learning intelligence, and hardened governance.
 | **Composable Intelligence Core** | Agents now coordinate through a latency-aware async bus with plugin registration. | 10× maintainability; hot-swappable connectors. |
 | **Live Integrations** | AWS Cost Explorer, Azure Cost Management, GCP Billing, GitHub, Datadog, Grafana, OpenAI and Anthropic usage APIs (with graceful fallbacks). | Pull real spend, telemetry, and LLM bills into the data fabric. |
 | **Predictive Intelligence** | Bayesian posterior tracking + statsmodels seasonal smoothing, Isolation Forest anomalies, reinforcement allocation. | Forecast accuracy improvements and automated guardrail tuning. |
+| **Quantum Optimisation** | Optional PennyLane/Qiskit solvers with quantum-inspired fallbacks drive ROI refinements. | Higher-confidence budget actions with explainable quantum summaries. |
 | **Security & DevOps** | GitHub governance, CodeQL, Dependabot, signed commits, security scanner CLI. | Enterprise-grade compliance posture. |
 | **Experience Layer** | FastAPI façade, GraphQL router, Streamlit dashboard, expanded CLI/overview tooling. | API, automation, operator visibility, and executive dashboards. |
 
@@ -21,7 +22,7 @@ self-learning intelligence, and hardened governance.
 python -m venv .venv
 source .venv/bin/activate
 pip install --upgrade pip
-pip install -e .[ml,integrations]
+pip install -e .[ml,integrations,quantum]
 pip install -r requirements-dev.txt
 ```
 
@@ -40,7 +41,7 @@ bandit -r afoc
 ```bash
 python -m afoc.cli allocate --total 250000 --targets architecture:0.4 implementation:0.35 optimization:0.25
 python -m afoc.cli forecast --history 900 950 1000 1100 1200
-python -m afoc.cli optimize --rewards 0.1 0.9 0.3
+python -m afoc.cli optimize --rewards 0.1 0.9 0.3 --quantum-only
 python -m afoc.cli audit
 python -m afoc.cli health
 python -m afoc.cli ingest --records analytics:1000 marketing:750 --source quickstart
@@ -48,7 +49,7 @@ python -m afoc.cli ingest --records analytics:1000 marketing:750 --source quicks
 
 ## API & Dashboard
 
-- `afoc.api.build_api()` exposes a FastAPI app with `/allocate`, `/forecast`, `/optimize`, and `/audit` endpoints.
+- `afoc.api.build_api()` exposes a FastAPI app with `/allocate`, `/forecast`, `/optimize`, `/optimize/quantum`, and `/audit` endpoints.
 - `afoc.graphql.build_graphql_router()` publishes the same capabilities through a GraphQL schema.
 - `afoc.dashboard.launch_streamlit_dashboard()` renders the Streamlit UI (run via `streamlit run -m afoc.dashboard.streamlit_app`).
 - `python -m afoc.tools.overview --preview` prints a real-time project inventory.
@@ -75,6 +76,7 @@ python -m afoc.cli ingest --records analytics:1000 marketing:750 --source quicks
 | Statsmodels seasonal layer | Optional exponential smoothing for seasonal workloads. |
 | Isolation Forest detector | ML-based anomaly detection when scikit-learn is available. |
 | Reinforcement allocator | Policy-gradient style reinforcement learning for ROI optimization. |
+| Quantum optimiser | `afoc.intelligence.quantum.QuantumOptimizer` selects Qiskit/PennyLane backends with quantum-inspired softmax fallback. |
 | ML lifecycle | `afoc.ml.lifecycle` integrates optional MLflow tracking and diagnostics logging. |
 
 ## Governance & Security
@@ -97,7 +99,30 @@ pip install afoc[ml]
 pip install afoc[integrations]
 pip install afoc[data]
 pip install afoc[observability]
+pip install afoc[quantum]
+
+## Six-Model Integration Flow
+
 ```
+User Request
+   ↓
+Strategic Analyst → Strategic Report
+   ↓
+Autonomous Fiscal Orchestration Core → Fiscal Framework (Budget, Constraints)
+   ↓
+Senior Manager → Task Distribution Plan
+   ↓
+Architect → Technical Blueprint
+   ↓
+Coder → Implementation
+   ↓
+Optimizer → Performance + Cost-Quality Optimization
+   ↓
+Final System → Validated + Audited + Efficient
+```
+
+Each layer feeds the next with structured intelligence, forming a self-governing enterprise AI
+capable of delivering optimised systems end-to-end with quantum-backed fiscal certainty.
 
 Refer to `GOVERNANCE.md` and `CONTRIBUTING.md` for contribution workflows, branch protection, and
 security expectations.

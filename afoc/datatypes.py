@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Mapping, Sequence, Tuple
+from typing import Dict, Mapping, Sequence, Tuple
 
 
 # ---------------------------------------------------------------------------
@@ -185,6 +185,32 @@ class CompetitiveGapAnalysis:
     first_mover_advantage: str
     operational_superiority: str
     strategic_positioning: str
+
+
+@dataclass
+class QuantumOptimizationSummary:
+    """Snapshot of the quantum or quantum-inspired optimization outcome."""
+
+    backend: str
+    method: str
+    shots: int
+    objective_value: float
+    recommended_action: str | None
+    converged: bool
+    state_probabilities: Mapping[str, float]
+
+    def as_payload(self) -> Dict[str, object]:
+        """Return a JSON-serialisable payload for API and CLI surfaces."""
+
+        return {
+            "backend": self.backend,
+            "method": self.method,
+            "shots": self.shots,
+            "objective_value": self.objective_value,
+            "recommended_action": self.recommended_action,
+            "converged": self.converged,
+            "state_probabilities": dict(self.state_probabilities),
+        }
 
 
 @dataclass

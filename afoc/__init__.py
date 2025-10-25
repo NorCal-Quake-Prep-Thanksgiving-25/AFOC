@@ -14,6 +14,8 @@ from .elite_enterprise import EliteAIEnterprisePro, deploy_elite_enterprise_syst
 from .dashboard import launch_streamlit_dashboard
 from .models import GodTierAIEnterpriseSystem
 from .logging import configure_logging, get_logger
+from .intelligence import QuantumOptimizer
+from .datatypes import QuantumOptimizationSummary
 from .credentials import (
     CredentialProvider,
     CompositeCredentialProvider,
@@ -48,6 +50,8 @@ __all__ = [
     "cli_main",
     "configure_logging",
     "get_logger",
+    "QuantumOptimizer",
+    "QuantumOptimizationSummary",
     "CredentialProvider",
     "CompositeCredentialProvider",
     "EnvironmentCredentialProvider",

@@ -251,6 +251,7 @@ class ComposableIntelligenceCore:
                 "max_latency": metrics.max_latency,
             },
             "data_fabric": fabric_status,
+            "quantum": self.roi_engine.quantum_capabilities(),
         }
 
     # ------------------------------------------------------------------

@@ -28,6 +28,10 @@ observability = [
     "structlog>=24.1",
     "keyring>=25.3",
 ]
+quantum = [
+    "pennylane>=0.36",
+    "qiskit>=1.0",
+]
 
 [build-system]
 requires = ["setuptools>=67", "wheel"]

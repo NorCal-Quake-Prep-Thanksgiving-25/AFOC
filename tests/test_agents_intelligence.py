@@ -65,6 +65,17 @@ def test_roi_engine_learns_preference_structure() -> None:
     assert result.advantage > -1.0  # sanity bound on the learnt signal
 
 
+def test_roi_engine_emits_quantum_summary() -> None:
+    engine = ROIEngine()
+    request = OptimizationRequest(reward_history=[0.2, 0.5, 0.3])
+    result = asyncio.run(engine.optimize(request))
+    summary = result.quantum_summary
+    assert summary is not None
+    assert summary["backend"] in {"quantum-inspired", "pennylane", "qiskit"}
+    assert 0.0 <= summary["objective_value"]
+    assert "state_probabilities" in summary
+
+
 def test_event_bus_records_metrics() -> None:
     bus = AsyncEventBus()
     captured: list[int] = []

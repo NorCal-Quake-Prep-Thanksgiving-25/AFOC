@@ -44,6 +44,21 @@ def build_api(core: ComposableIntelligenceCore | None = None) -> Any:
         result = await resolved_core.roi_engine.optimize(request)
         return result.dict()
 
+    @app.post("/optimize/quantum")
+    async def optimize_quantum(request: OptimizationRequest) -> Any:
+        result = await resolved_core.roi_engine.optimize(request)
+        if not result.quantum_summary:
+            if JSONResponse is None:
+                raise RuntimeError("Quantum optimisation unavailable")
+            return JSONResponse(
+                status_code=503, content={"detail": "Quantum optimiser unavailable"}
+            )
+        payload: Dict[str, Any] = result.dict()
+        return {
+            "selected_action": payload["selected_action"],
+            "quantum_summary": payload["quantum_summary"],
+        }
+
     @app.post("/audit")
     async def audit() -> Dict[str, Any]:
         alert = await resolved_core.security_guardian.audit()

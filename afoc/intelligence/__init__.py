@@ -9,6 +9,7 @@ from .predictors import (
     StatsmodelsForecaster,
     StreamingAnomalyDetector,
 )
+from .quantum import QuantumOptimizationResult, QuantumOptimizer
 
 __all__ = [
     "AdaptiveSmoother",
@@ -18,4 +19,6 @@ __all__ = [
     "ReinforcementAllocator",
     "StatsmodelsForecaster",
     "StreamingAnomalyDetector",
+    "QuantumOptimizationResult",
+    "QuantumOptimizer",
 ]

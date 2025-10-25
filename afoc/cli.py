@@ -39,7 +39,11 @@ async def _run_forecast(core: ComposableIntelligenceCore, args: argparse.Namespa
 async def _run_optimize(core: ComposableIntelligenceCore, args: argparse.Namespace) -> None:
     request = OptimizationRequest(reward_history=[float(v) for v in args.rewards])
     response = await core.roi_engine.optimize(request)
-    print(response.json(indent=2))
+    payload = response.dict()
+    if args.quantum_only and payload.get("quantum_summary"):
+        print(json.dumps(payload["quantum_summary"], indent=2))
+    else:
+        print(response.json(indent=2))
 
 
 async def _run_audit(core: ComposableIntelligenceCore) -> None:
@@ -81,6 +85,11 @@ def main(argv: List[str] | None = None) -> None:
 
     optimize = sub.add_parser("optimize", help="Run ROI optimization")
     optimize.add_argument("--rewards", nargs="+", required=True, help="Reward history")
+    optimize.add_argument(
+        "--quantum-only",
+        action="store_true",
+        help="Show only the quantum optimisation summary when available",
+    )
 
     sub.add_parser("audit", help="Run security audit")
     sub.add_parser("health", help="Show system health")

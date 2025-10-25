@@ -26,6 +26,18 @@ def test_api_contract_endpoints() -> None:
     assert forecast.status_code == 200
     assert "predictions" in forecast.json()
 
+    optimize = client.post("/optimize", json={"reward_history": [0.2, 0.5, 0.3]})
+    assert optimize.status_code == 200
+    optimise_body = optimize.json()
+    assert "quantum_summary" in optimise_body
+    assert optimise_body["quantum_summary"]["backend"]
+
+    quantum = client.post("/optimize/quantum", json={"reward_history": [0.2, 0.5, 0.3]})
+    assert quantum.status_code == 200
+    q_body = quantum.json()
+    assert "quantum_summary" in q_body
+    assert "selected_action" in q_body
+
     audit = client.post("/audit")
     assert audit.status_code == 200
     assert "status" in audit.json()
