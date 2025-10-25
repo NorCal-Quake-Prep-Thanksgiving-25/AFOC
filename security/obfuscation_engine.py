@@ -1,4 +1,5 @@
 """Utility routines for lightweight code obfuscation and watermarking."""
+
 from __future__ import annotations
 
 import base64
@@ -54,4 +55,3 @@ class ObfuscationEngine:
             digest = self._derive_digest(module, module[::-1])
             watermark = self.watermark(module, owner="EliteAI Enterprises")
             yield ObfuscationResult(module=module, digest=digest, watermark=watermark)
-

@@ -1,4 +1,5 @@
 """Secret scanning utilities to prevent accidental credential leaks."""
+
 from __future__ import annotations
 
 import logging
@@ -54,4 +55,3 @@ class SecretScanner:
                     findings.append(str(path))
                     break
         return sorted(set(findings))
-

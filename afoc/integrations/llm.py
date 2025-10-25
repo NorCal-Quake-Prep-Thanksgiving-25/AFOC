@@ -1,4 +1,5 @@
 """LLM cost and usage collectors."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -34,7 +35,9 @@ class AnthropicUsageCollector(LLMUsageCollector):
     provider = "anthropic"
 
     def fetch_usage(self) -> LLMUsage:
-        return LLMUsage(provider=self.provider, model="claude-3-opus", tokens=120000, cost_usd=360.0)
+        return LLMUsage(
+            provider=self.provider, model="claude-3-opus", tokens=120000, cost_usd=360.0
+        )
 
 
 AVAILABLE_USAGE_COLLECTORS: Dict[str, type[LLMUsageCollector]] = {

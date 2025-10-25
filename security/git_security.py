@@ -1,4 +1,5 @@
 """Git security utilities for EliteAI."""
+
 from __future__ import annotations
 
 import logging
@@ -61,7 +62,4 @@ def secure_git_push() -> None:
     """Placeholder routine that represents a protected git push."""
 
     logger = logging.getLogger("GitSecurity")
-    logger.info(
-        "Secure push executed with mandatory security checks and signed commits."
-    )
-
+    logger.info("Secure push executed with mandatory security checks and signed commits.")

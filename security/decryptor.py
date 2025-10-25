@@ -1,4 +1,5 @@
 """Runtime utilities for decrypting secure environment variables."""
+
 from __future__ import annotations
 
 import base64

@@ -1,4 +1,5 @@
 """High-level overview tooling for the EliteAI Enterprise codebase."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -37,8 +38,7 @@ class SystemOverview:
         return {
             "module_paths": list(self.module_paths),
             "key_files": [
-                {"path": info.path, "size_bytes": info.size_bytes}
-                for info in self.key_files
+                {"path": info.path, "size_bytes": info.size_bytes} for info in self.key_files
             ],
             "import_successful": self.import_successful,
         }

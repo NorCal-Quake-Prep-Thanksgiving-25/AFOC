@@ -1,4 +1,5 @@
 """Command-line entry point for the pre-push security checklist."""
+
 from __future__ import annotations
 
 import argparse
@@ -41,8 +42,12 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="EliteAI security scanner")
     parser.add_argument("--check-secrets", action="store_true", help="Fail if secrets are detected")
     parser.add_argument("--check-ips", action="store_true", help="Fail if IP leakage is detected")
-    parser.add_argument("--obfuscate", action="store_true", help="Autofix by obfuscating code on failure")
-    parser.add_argument("--full-audit", action="store_true", help="Run the comprehensive security audit")
+    parser.add_argument(
+        "--obfuscate", action="store_true", help="Autofix by obfuscating code on failure"
+    )
+    parser.add_argument(
+        "--full-audit", action="store_true", help="Run the comprehensive security audit"
+    )
     return parser
 
 

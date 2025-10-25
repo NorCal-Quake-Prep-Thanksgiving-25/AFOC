@@ -1,4 +1,5 @@
 """Security infrastructure for the EliteAI Enterprise platform."""
+
 from .auditor import CommercialSecurityAudit
 from .code_protector import CommercialCodeProtector
 from .pre_push_scanner import PrePushSecurityScanner

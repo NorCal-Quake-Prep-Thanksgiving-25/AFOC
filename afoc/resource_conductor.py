@@ -1,4 +1,5 @@
 """Dynamic resource orchestration logic for the AFOC."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -38,10 +39,14 @@ class ResourceConductor:
         current = self.get_current_resource_map()
         allocation = self.calculate_optimal_allocation(fiscal_framework)
         plan = self.generate_orchestration_plan(allocation)
-        return ResourceOrchestration(current, plan.optimal_distribution, plan.migration_plan, plan.predicted_efficiency_gain)
+        return ResourceOrchestration(
+            current, plan.optimal_distribution, plan.migration_plan, plan.predicted_efficiency_gain
+        )
 
     # Framework integration -------------------------------------------------
-    def calculate_optimal_allocation(self, fiscal_framework: Mapping[str, float]) -> Mapping[str, float]:
+    def calculate_optimal_allocation(
+        self, fiscal_framework: Mapping[str, float]
+    ) -> Mapping[str, float]:
         total = sum(fiscal_framework.values()) or 1.0
         return {name: budget / total for name, budget in fiscal_framework.items()}
 
@@ -79,7 +84,9 @@ class ResourceConductor:
         }
 
     # Adaptive orchestration ------------------------------------------------
-    def analyse_performance(self, snapshots: Sequence[ResourceSnapshot]) -> ResourceRecommendationSet:
+    def analyse_performance(
+        self, snapshots: Sequence[ResourceSnapshot]
+    ) -> ResourceRecommendationSet:
         recommendations: list[ResourceRecommendation] = []
         for snapshot in snapshots:
             efficiency = snapshot.performance_score / (snapshot.cost_signature() or 1.0)
@@ -131,11 +138,12 @@ class ResourceConductor:
                 )
                 total_gain += amount * 3
             risk[rec.model_name] = max(0.1, 1 - amount)
-        return ReallocationReport(resources_moved=moves, efficiency_gain=total_gain, risk_assessment=risk)
+        return ReallocationReport(
+            resources_moved=moves, efficiency_gain=total_gain, risk_assessment=risk
+        )
 
     def record_snapshot(self, snapshot: ResourceSnapshot) -> None:
         self._history.append(snapshot)
 
     def load_history(self, snapshots: Iterable[ResourceSnapshot]) -> None:
         self._history = list(snapshots)
-

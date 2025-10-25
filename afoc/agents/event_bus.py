@@ -1,4 +1,5 @@
 """Lightweight async event bus shared by the agents."""
+
 from __future__ import annotations
 
 import asyncio

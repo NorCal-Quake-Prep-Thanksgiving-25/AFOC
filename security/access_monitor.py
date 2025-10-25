@@ -1,4 +1,5 @@
 """Repository access monitoring utilities."""
+
 from __future__ import annotations
 
 import logging
@@ -37,4 +38,3 @@ class RepositoryAccessMonitor:
         for event in self._events:
             summary[event.action] = summary.get(event.action, 0) + 1
         return summary
-

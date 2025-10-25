@@ -1,4 +1,5 @@
 """Composable agents backing the intelligence core."""
+
 from .base import AllocationProtocol, ForecastProtocol, OptimizationProtocol, SecurityProtocol
 from .budget import AllocationRequest, AllocationResponse, BudgetAgent
 from .event_bus import AgentEvent, AsyncEventBus

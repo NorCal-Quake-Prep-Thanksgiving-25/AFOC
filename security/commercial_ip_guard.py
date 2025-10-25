@@ -1,4 +1,5 @@
 """Commercial intellectual property guard rails for EliteAI."""
+
 from __future__ import annotations
 
 import logging
@@ -58,4 +59,3 @@ class CommercialSecurityMonitor:
         )
         self.logger.debug("Security dashboard generated: %s", dashboard)
         return dashboard
-

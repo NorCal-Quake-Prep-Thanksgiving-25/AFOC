@@ -1,4 +1,5 @@
 """High-level obfuscation helpers for sensitive EliteAI algorithms."""
+
 from __future__ import annotations
 
 import logging

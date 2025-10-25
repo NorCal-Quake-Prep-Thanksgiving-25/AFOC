@@ -1,4 +1,5 @@
 """Repository hardening helpers that mirror the DeepSeek checklist."""
+
 from __future__ import annotations
 
 import logging

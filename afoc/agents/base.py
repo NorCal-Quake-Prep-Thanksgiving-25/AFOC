@@ -1,4 +1,5 @@
 """Protocols and base data structures for agents."""
+
 from __future__ import annotations
 
 from abc import abstractmethod

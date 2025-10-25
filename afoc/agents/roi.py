@@ -1,4 +1,5 @@
 """ROI engine with reinforcement learning inspired allocator."""
+
 from __future__ import annotations
 
 from typing import Dict, List
@@ -11,7 +12,9 @@ from .event_bus import AgentEvent, AsyncEventBus
 
 class OptimizationRequest(BaseModel):
     reward_history: List[float] = Field(default_factory=list)
-    actions: List[str] = Field(default_factory=lambda: ["architecture", "implementation", "optimization"])
+    actions: List[str] = Field(
+        default_factory=lambda: ["architecture", "implementation", "optimization"]
+    )
     exploration: float = Field(default=0.1, ge=0.0, le=1.0)
 
 
@@ -38,13 +41,19 @@ class ROIEngine:
         for action, reward in zip(request.actions, request.reward_history):
             self._q_values.setdefault(action, 0.0)
             self._q_values[action] = self._q_values[action] * 0.8 + 0.2 * reward
-        if random.random() < request.exploration or not self._q_values:
-            action = random.choice(request.actions)
+        if random.random() < request.exploration or not self._q_values:  # nosec B311
+            action = random.choice(request.actions)  # nosec B311
         else:
-            action = max(self._q_values, key=self._q_values.get)
+
+            def value_for(candidate: str) -> float:
+                return self._q_values.get(candidate, float("-inf"))
+
+            action = max(self._q_values, key=value_for)
         expected = self._q_values.get(action, 0.0)
         policy = self._softmax_policy(request.actions)
-        response = OptimizationResponse(policy=policy, selected_action=action, expected_reward=expected)
+        response = OptimizationResponse(
+            policy=policy, selected_action=action, expected_reward=expected
+        )
         if self._event_bus:
             await self._event_bus.publish(
                 AgentEvent(type="optimization.completed", payload=response.dict())

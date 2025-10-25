@@ -1,4 +1,5 @@
 """Enterprise performance guarantees for the EliteAI commercial offering."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -55,4 +56,3 @@ class EnterprisePerformanceOptimizer:
             security="Zero data breaches guaranteed",
             support=self.performance_guarantees.sla_summary(),
         )
-

@@ -1,4 +1,5 @@
 """Forecast agent implementing Bayesian spend estimation and anomaly detection."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass

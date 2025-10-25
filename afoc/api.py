@@ -1,4 +1,5 @@
 """FastAPI façade exposing the agent mesh."""
+
 from __future__ import annotations
 
 from typing import Any, Dict
@@ -21,27 +22,31 @@ def build_api(core: ComposableIntelligenceCore | None = None) -> Any:
     if FastAPI is None:
         raise RuntimeError("FastAPI is required for the API façade")
 
+    if core is None:
+        resolved_core = ComposableIntelligenceCore()
+    else:
+        resolved_core = core
+
     app = FastAPI(title="Composable Intelligence Core")
-    core = core or ComposableIntelligenceCore()
 
     @app.post("/allocate")
     async def allocate(request: AllocationRequest) -> Dict[str, Any]:
-        result = await core.budget_agent.allocate(request)
+        result = await resolved_core.budget_agent.allocate(request)
         return result.dict()
 
     @app.post("/forecast")
     async def forecast(request: ForecastRequest) -> Dict[str, Any]:
-        result = await core.forecast_agent.forecast(request)
+        result = await resolved_core.forecast_agent.forecast(request)
         return result.dict()
 
     @app.post("/optimize")
     async def optimize(request: OptimizationRequest) -> Dict[str, Any]:
-        result = await core.roi_engine.optimize(request)
+        result = await resolved_core.roi_engine.optimize(request)
         return result.dict()
 
     @app.post("/audit")
     async def audit() -> Dict[str, Any]:
-        alert = await core.security_guardian.audit()
+        alert = await resolved_core.security_guardian.audit()
         return alert.dict()
 
     return app

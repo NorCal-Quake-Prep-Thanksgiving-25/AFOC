@@ -1,4 +1,5 @@
 """Commercial security audit orchestration."""
+
 from __future__ import annotations
 
 import logging
@@ -65,9 +66,7 @@ class CommercialSecurityAudit:
         setup_git_security(self.repo_root)
         template = self.repo_root / ".env.secure.template"
         if not template.exists():
-            template.write_text(
-                "API_KEYS=ENCRYPTED_BLOB\n", encoding="utf-8"
-            )
+            template.write_text("API_KEYS=ENCRYPTED_BLOB\n", encoding="utf-8")
         return [
             "Applied code protection layers",
             f"Branch protection review: {protection_report.summary()}",

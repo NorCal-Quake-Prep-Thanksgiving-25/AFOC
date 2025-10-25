@@ -1,4 +1,5 @@
 """Cloud cost integrations (AWS, Azure, GCP)."""
+
 from __future__ import annotations
 
 import random
@@ -22,7 +23,11 @@ class CostCollector(BaseModel):
         random.seed(self.provider)
         services = ["compute", "storage", "networking", "database"]
         return [
-            CloudSpendSample(provider=self.provider, service=svc, amount=random.random() * 1000)
+            CloudSpendSample(
+                provider=self.provider,
+                service=svc,
+                amount=random.random() * 1000,  # nosec B311
+            )
             for svc in services
         ]
 

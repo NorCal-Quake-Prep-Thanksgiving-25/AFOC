@@ -1,4 +1,5 @@
 """DevOps telemetry integrations for GitHub, Datadog, and Grafana."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -25,7 +26,9 @@ class GitHubCollector(DevOpsCollector):
     def pull_metrics(self) -> Dict[str, DevOpsMetric]:
         return {
             "open_prs": DevOpsMetric(source=self.source, metric="open_prs", value=4),
-            "deploy_frequency": DevOpsMetric(source=self.source, metric="deploy_frequency", value=7),
+            "deploy_frequency": DevOpsMetric(
+                source=self.source, metric="deploy_frequency", value=7
+            ),
         }
 
 

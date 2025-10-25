@@ -1,4 +1,5 @@
 """Workflow utilities connecting strategic and fiscal oversight."""
+
 from __future__ import annotations
 
 from contextlib import AbstractContextManager
@@ -39,9 +40,13 @@ class DualOversight(AbstractContextManager["DualOversight"]):
         result = execution_fn()
         strategic_score = self.strategic_analyst.review_phase(phase_name, result)
         fiscal_score = min(1.0, budget_allocation / (sum(result.values()) or 1.0))
-        record = self.fiscal_core.evaluate_phase(phase_name, strategic_score, fiscal_score, budget_allocation)
+        record = self.fiscal_core.evaluate_phase(
+            phase_name, strategic_score, fiscal_score, budget_allocation
+        )
         self.records.append(record)
-        self.phase_results.append(PhaseExecutionResult(phase=phase_name, outcome=result, oversight=record))
+        self.phase_results.append(
+            PhaseExecutionResult(phase=phase_name, outcome=result, oversight=record)
+        )
         return result
 
     def get_strategic_report(self) -> Mapping[str, float]:
@@ -56,4 +61,3 @@ class DualOversight(AbstractContextManager["DualOversight"]):
 
     def summary(self) -> OversightSummary:
         return self.fiscal_core.fiscal_monitor.summarize_oversight(self.records)
-

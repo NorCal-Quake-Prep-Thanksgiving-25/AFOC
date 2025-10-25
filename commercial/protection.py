@@ -1,4 +1,5 @@
 """Commercial intellectual property protection blueprint."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass, field

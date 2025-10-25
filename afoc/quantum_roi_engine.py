@@ -1,4 +1,5 @@
 """Quantum-level ROI analytics for the EliteAI commercial suite."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -41,9 +42,15 @@ class QuantumROIEngine:
 
         financial_metrics = {
             "cost_savings": round(50_0000 * baseline.cost_savings_multiplier * scale_factor, 2),
-            "revenue_acceleration": round(65_0000 * baseline.revenue_growth_multiplier * scale_factor, 2),
-            "risk_mitigation_value": round(45_0000 * baseline.risk_mitigation_multiplier * scale_factor, 2),
-            "strategic_option_value": round(25_0000 * self.strategic_premium * ambition_multiplier, 2),
+            "revenue_acceleration": round(
+                65_0000 * baseline.revenue_growth_multiplier * scale_factor, 2
+            ),
+            "risk_mitigation_value": round(
+                45_0000 * baseline.risk_mitigation_multiplier * scale_factor, 2
+            ),
+            "strategic_option_value": round(
+                25_0000 * self.strategic_premium * ambition_multiplier, 2
+            ),
         }
 
         competitive_metrics = {
@@ -65,7 +72,9 @@ class QuantumROIEngine:
             future_metrics=future_metrics,
         )
 
-    def generate_competitive_analysis(self, client_vs_competitors: Mapping[str, float]) -> CompetitiveGapAnalysis:
+    def generate_competitive_analysis(
+        self, client_vs_competitors: Mapping[str, float]
+    ) -> CompetitiveGapAnalysis:
         delta = sum(client_vs_competitors.values()) / max(len(client_vs_competitors), 1)
         advantage = "$50M-$200M market cap impact"
         if delta > 0.3:
@@ -95,4 +104,3 @@ class QuantumROIEngine:
         if size in {"enterprise", "global"}:
             return 1.3
         return 1.0
-

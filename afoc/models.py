@@ -1,4 +1,5 @@
 """Model stubs composing the six-model enterprise architecture."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -22,8 +23,12 @@ class Model1_StrategicAnalyst:
     def conduct_comprehensive_analysis(self, user_request: StrategicRequest) -> StrategicAnalysis:
         feasibility = min(100.0, user_request.expected_roi * 10)
         alignment_vector = {k: v * 100 for k, v in user_request.constraints.items()}
-        narrative = f"Analysis for {user_request.objective} with ROI {user_request.expected_roi:.2f}"
-        return StrategicAnalysis(feasibility_score=feasibility, alignment_vector=alignment_vector, narrative=narrative)
+        narrative = (
+            f"Analysis for {user_request.objective} with ROI {user_request.expected_roi:.2f}"
+        )
+        return StrategicAnalysis(
+            feasibility_score=feasibility, alignment_vector=alignment_vector, narrative=narrative
+        )
 
     def review_phase(self, phase_name: str, result: Mapping[str, float]) -> float:
         return min(1.0, sum(result.values()) / (len(result) * 100 or 1.0))
@@ -52,8 +57,14 @@ class Model3_Orchestrator:
         architecture_tasks = ["Design data flows", "Establish integration patterns"]
         implementation_tasks = ["Develop services", "Implement monitoring"]
         optimization_tasks = ["Tune inference", "Optimize storage"]
-        fiscal_constraints = {phase: allocation * 0.8 for phase, allocation in fiscal_framework.budget_distribution.items()}
-        fiscal_guidelines = {phase: allocation * 0.9 for phase, allocation in fiscal_framework.budget_distribution.items()}
+        fiscal_constraints = {
+            phase: allocation * 0.8
+            for phase, allocation in fiscal_framework.budget_distribution.items()
+        }
+        fiscal_guidelines = {
+            phase: allocation * 0.9
+            for phase, allocation in fiscal_framework.budget_distribution.items()
+        }
         roi_targets = fiscal_framework.roi_thresholds
         return StrategicPlan(
             architecture_budget=fiscal_framework.budget_distribution["architecture"],
@@ -81,7 +92,9 @@ class Model4_Architect:
         technical_constraints: Sequence[str],
         fiscal_constraints: Mapping[str, float],
     ) -> Mapping[str, float]:
-        return {task: fiscal_constraints.get("architecture", 0.0) / (len(tasks) or 1) for task in tasks}
+        return {
+            task: fiscal_constraints.get("architecture", 0.0) / (len(tasks) or 1) for task in tasks
+        }
 
 
 @dataclass
@@ -111,7 +124,9 @@ class Model6_Enhancement:
         roi_targets: Mapping[str, float],
     ) -> Mapping[str, float]:
         total = sum(implementation_output.values())
-        return {task: total * roi_targets.get("optimization", 0.2) / (len(tasks) or 1) for task in tasks}
+        return {
+            task: total * roi_targets.get("optimization", 0.2) / (len(tasks) or 1) for task in tasks
+        }
 
 
 class GodTierAIEnterpriseSystem:
@@ -128,15 +143,21 @@ class GodTierAIEnterpriseSystem:
     def process_enterprise_request(self, user_request: StrategicRequest):
         strategic_analysis = self.strategic_analyst.conduct_comprehensive_analysis(user_request)
         fiscal_framework = self.fiscal_orchestrator.establish_fiscal_governance(strategic_analysis)
-        if strategic_analysis.feasibility_score >= 80 and fiscal_framework.total_budget_allocation >= 75:
-            plan = self.senior_manager.create_fiscally_constrained_plan(user_request, strategic_analysis, fiscal_framework)
+        if (
+            strategic_analysis.feasibility_score >= 80
+            and fiscal_framework.total_budget_allocation >= 75
+        ):
+            plan = self.senior_manager.create_fiscally_constrained_plan(
+                user_request, strategic_analysis, fiscal_framework
+            )
             results = self.execute_fiscally_governed_workflow(plan)
             return self.validate_strategic_fiscal_alignment(results)
         return self.generate_viability_rejection(strategic_analysis, fiscal_framework)
 
-    def execute_fiscally_governed_workflow(self, strategic_plan: StrategicPlan) -> EnterpriseDelivery:
-        phase_reports = {}
-        fiscal_monitor = self.fiscal_orchestrator.initialize_fiscal_monitoring(strategic_plan)
+    def execute_fiscally_governed_workflow(
+        self, strategic_plan: StrategicPlan
+    ) -> EnterpriseDelivery:
+        phase_reports: dict[str, Mapping[str, float]] = {}
         with DualOversight(self.strategic_analyst, self.fiscal_orchestrator) as oversight:
             architecture = oversight.approve_phase(
                 phase_name="Architecture Design",
@@ -170,17 +191,7 @@ class GodTierAIEnterpriseSystem:
                 ),
             )
             phase_reports["optimization"] = optimization
-        spend_summary = {phase: sum(values.values()) for phase, values in phase_reports.items()}
-        total_budget = (
-            strategic_plan.architecture_budget
-            + strategic_plan.implementation_budget
-            + strategic_plan.optimization_budget
-        )
-        dashboard = self.fiscal_orchestrator.monitor_fiscal_operations(
-            spend_summary,
-            fiscal_guidelines=strategic_plan.fiscal_guidelines,
-            total_budget=total_budget,
-        )
+        dashboard = self.fiscal_orchestrator.monitor_fiscal_operations(strategic_plan)
         return EnterpriseDelivery(
             technical_components=phase_reports,
             strategic_analysis=oversight.get_strategic_report(),
@@ -188,7 +199,9 @@ class GodTierAIEnterpriseSystem:
             business_impact_metrics=oversight.calculate_business_impact(),
         )
 
-    def validate_strategic_fiscal_alignment(self, delivery: EnterpriseDelivery) -> EnterpriseDelivery:
+    def validate_strategic_fiscal_alignment(
+        self, delivery: EnterpriseDelivery
+    ) -> EnterpriseDelivery:
         return delivery
 
     def generate_viability_rejection(
@@ -201,4 +214,3 @@ class GodTierAIEnterpriseSystem:
             "feasibility": strategic_analysis.feasibility_score,
             "budget": fiscal_framework.total_budget_allocation,
         }
-

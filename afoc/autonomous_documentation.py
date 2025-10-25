@@ -1,4 +1,5 @@
 """Self-writing documentation utilities for EliteAI."""
+
 from __future__ import annotations
 
 from typing import Mapping, Sequence
@@ -20,14 +21,14 @@ class SelfWritingDocumentation:
             security_compliance=self._compliance_assets(),
         )
 
-    def create_adaptive_pitch_decks(self, prospect_profile: Mapping[str, str]) -> PersonalizedPitchDeck:
+    def create_adaptive_pitch_decks(
+        self, prospect_profile: Mapping[str, str]
+    ) -> PersonalizedPitchDeck:
         persona = prospect_profile.get("role", "executive")
         market = prospect_profile.get("industry", "enterprise")
         executive_summary = f"EliteAI unlocks hypergrowth for {market} leaders"
         technical_details = f"Architecture tuned for {market} regulatory requirements"
-        financial_analysis = (
-            f"Projected ROI aligns with {persona.upper()} priorities and accelerates strategic outcomes"
-        )
+        financial_analysis = f"Projected ROI aligns with {persona.upper()} priorities and accelerates strategic outcomes"
         implementation_timeline = "Phase-gated rollout completed within 45-60 days"
 
         return PersonalizedPitchDeck(
@@ -46,7 +47,10 @@ class SelfWritingDocumentation:
             "Performance Benchmarks",
             "Implementation Roadmap",
         ]
-        body = [f"# {title}\nEliteAI provides detailed insights for {title.lower()}." for title in sections]
+        body = [
+            f"# {title}\nEliteAI provides detailed insights for {title.lower()}."
+            for title in sections
+        ]
         return "\n\n".join(body)
 
     @staticmethod
@@ -72,4 +76,3 @@ class SelfWritingDocumentation:
             "HIPAA readiness toolkit",
             "GDPR cross-border checklist",
         ]
-

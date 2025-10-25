@@ -1,4 +1,5 @@
 """Zero-trust repository monitoring utilities."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass, field

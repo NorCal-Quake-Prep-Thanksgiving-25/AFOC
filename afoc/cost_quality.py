@@ -1,4 +1,5 @@
 """Cost-quality equilibrium management for the AFOC."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -45,7 +46,9 @@ class CostQualityEngine:
     def __init__(self) -> None:
         self._history: list[CostQualityMetric] = []
 
-    def maintain_equilibrium(self, operational_data: Sequence[CostQualityMetric]) -> FiscalEquilibriumState:
+    def maintain_equilibrium(
+        self, operational_data: Sequence[CostQualityMetric]
+    ) -> FiscalEquilibriumState:
         frontier = self.calculate_equilibrium_frontier(operational_data)
         directives = self.generate_optimization_directives(frontier)
         state = FiscalEquilibriumState(
@@ -57,12 +60,16 @@ class CostQualityEngine:
         self._history.extend(operational_data)
         return state
 
-    def calculate_equilibrium_frontier(self, metrics: Sequence[CostQualityMetric]) -> CostQualitySnapshotEnvelope:
+    def calculate_equilibrium_frontier(
+        self, metrics: Sequence[CostQualityMetric]
+    ) -> CostQualitySnapshotEnvelope:
         snapshot = self._build_snapshot(metrics)
         plan = self._build_plan(snapshot)
         return CostQualitySnapshotEnvelope(snapshot, plan)
 
-    def generate_optimization_directives(self, envelope: CostQualitySnapshotEnvelope) -> CostQualityPlan:
+    def generate_optimization_directives(
+        self, envelope: CostQualitySnapshotEnvelope
+    ) -> CostQualityPlan:
         return envelope.directives
 
     def measure_current_balance(self, metrics: Sequence[CostQualityMetric]) -> Mapping[str, float]:
@@ -85,7 +92,11 @@ class CostQualityEngine:
         expected_improvements: dict[str, float] = {}
         for component, (cost, quality) in snapshot.components.items():
             equilibrium = snapshot.equilibrium[component]
-            target = statistics.fmean(snapshot.equilibrium.values()) if snapshot.equilibrium else equilibrium
+            target = (
+                statistics.fmean(snapshot.equilibrium.values())
+                if snapshot.equilibrium
+                else equilibrium
+            )
             action = "hold"
             gain = 0.0
             if equilibrium > target * 1.05:
@@ -149,7 +160,9 @@ class CostQualityEngine:
                 assessments[signal.component] = "degraded"
         return assessments
 
-    def build_quality_improvement_plan(self, batch: QualitySignalBatch) -> Mapping[str, Sequence[str]]:
+    def build_quality_improvement_plan(
+        self, batch: QualitySignalBatch
+    ) -> Mapping[str, Sequence[str]]:
         plan: dict[str, list[str]] = {}
         for signal in batch.signals:
             actions: list[str] = []
@@ -160,4 +173,3 @@ class CostQualityEngine:
                 actions.append("Escalate to quality council for immediate review")
             plan[signal.component] = actions or ["Maintain current quality practices"]
         return plan
-

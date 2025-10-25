@@ -5,16 +5,16 @@ branch_protection_rules:
     required_status_checks:
       strict: true
       contexts:
-        - security/pre-push
-        - tests/pytest
+        - CI / lint-test
+        - CodeQL / Analyze
     required_pull_request_reviews:
       required_approving_review_count: 2
       dismiss_stale_reviews: true
-      require_code_owner_reviews: false
+      require_code_owner_reviews: true
       require_last_push_approval: true
     restrictions:
       users:
-        - OWNER_USERNAME  # Replace with the repository owner's GitHub handle.
+        - your-username
       teams: []
       apps: []
     require_signed_commits: true

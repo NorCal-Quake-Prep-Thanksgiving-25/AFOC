@@ -1,8 +1,9 @@
 """Commercial EliteAI enterprise platform orchestration."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Mapping, Sequence
+from typing import Any, Mapping, Protocol, Sequence
 
 from .autonomous_business_development import AutonomousBusinessDeveloper
 from .autonomous_documentation import SelfWritingDocumentation
@@ -24,14 +25,23 @@ from .quantum_roi_engine import QuantumROIEngine
 # ---------------------------------------------------------------------------
 
 
+class IndustryAdapter(Protocol):
+    def tailor_plan(self, plan: StrategicPlan) -> Sequence[str]:  # pragma: no cover - protocol
+        ...
+
+
 class EnhancedClaude3Opus:
-    def analyze(self, request: StrategicRequest, industry_context: Mapping[str, Any]) -> StrategicAnalysis:
+    def analyze(
+        self, request: StrategicRequest, industry_context: Mapping[str, Any]
+    ) -> StrategicAnalysis:
         feasibility = min(100.0, request.expected_roi * 8.5)
         weights = {k: v * 120 for k, v in request.constraints.items()}
         industry_modifier = 5.0 if industry_context.get("industry") == "finance" else 3.5
         feasibility += industry_modifier
         narrative = f"Elite analysis for {request.objective} in {industry_context.get('industry', 'general')}"
-        return StrategicAnalysis(feasibility_score=feasibility, alignment_vector=weights, narrative=narrative)
+        return StrategicAnalysis(
+            feasibility_score=feasibility, alignment_vector=weights, narrative=narrative
+        )
 
 
 class AdvancedClaude3Sonnet:
@@ -54,13 +64,18 @@ class AdvancedClaude3Sonnet:
         technical_constraints = ["Zero-trust architecture", "Regulatory compliance"]
         fiscal_constraints = {phase: amount * 0.8 for phase, amount in base_distribution.items()}
         fiscal_guidelines = {phase: amount * 0.85 for phase, amount in base_distribution.items()}
-        roi_targets = {phase: analysis.alignment_vector.get(phase, 0.2) / 100 for phase in base_distribution}
+        roi_targets = {
+            phase: analysis.alignment_vector.get(phase, 0.2) / 100 for phase in base_distribution
+        }
 
         return StrategicPlan(
             architecture_budget=architecture_budget,
             implementation_budget=implementation_budget,
             optimization_budget=optimization_budget,
-            architectural_tasks=["Design multi-tenant data fabric", "Establish compliance gateways"],
+            architectural_tasks=[
+                "Design multi-tenant data fabric",
+                "Establish compliance gateways",
+            ],
             implementation_tasks=["Build orchestration microservices", "Integrate telemetry"],
             optimization_tasks=["Auto-tune GPU fleets", "Dynamic load balancing"],
             technical_constraints=technical_constraints,
@@ -81,14 +96,22 @@ class GPT4ArchitectPlus:
 class DeepSeekCoderEnterprise:
     def build(self, plan: StrategicPlan, design: Mapping[str, float]) -> Mapping[str, float]:
         base = sum(design.values()) * 0.95
-        return {task: base / max(len(plan.implementation_tasks), 1) for task in plan.implementation_tasks}
+        return {
+            task: base / max(len(plan.implementation_tasks), 1)
+            for task in plan.implementation_tasks
+        }
 
 
 class GPT4TurboOptimizer:
-    def optimize(self, plan: StrategicPlan, implementation: Mapping[str, float], turbo_mode: bool) -> Mapping[str, float]:
+    def optimize(
+        self, plan: StrategicPlan, implementation: Mapping[str, float], turbo_mode: bool
+    ) -> Mapping[str, float]:
         total = sum(implementation.values())
         multiplier = 1.15 if turbo_mode else 1.05
-        return {task: total * multiplier / max(len(plan.optimization_tasks), 1) for task in plan.optimization_tasks}
+        return {
+            task: total * multiplier / max(len(plan.optimization_tasks), 1)
+            for task in plan.optimization_tasks
+        }
 
 
 # ---------------------------------------------------------------------------
@@ -201,7 +224,7 @@ class EliteAIEnterprisePro:
         self.security_layer = QuantumSecurityLayer()
         self.performance_accelerator = GPUTurboBoost()
         self.auto_scaling = InfiniteScalabilityEngine()
-        self.industry_adapters = {
+        self.industry_adapters: dict[str, IndustryAdapter] = {
             "finance": FinancialServicesAI(),
             "healthcare": HealthcareComplianceAI(),
             "consulting": EnterpriseTransformationAI(),
@@ -220,13 +243,19 @@ class EliteAIEnterprisePro:
         industry_context: Mapping[str, Any],
         turbo_mode: bool = True,
     ) -> Mapping[str, Any]:
-        constraints = client_config.get("constraints", {"architecture": 0.3, "implementation": 0.5, "optimization": 0.2})
+        constraints = client_config.get(
+            "constraints", {"architecture": 0.3, "implementation": 0.5, "optimization": 0.2}
+        )
         expected_roi = client_config.get("expected_roi", 10.0)
-        strategic_request = StrategicRequest(objective=user_request, constraints=constraints, expected_roi=expected_roi)
+        strategic_request = StrategicRequest(
+            objective=user_request, constraints=constraints, expected_roi=expected_roi
+        )
 
         analysis = self.strategic_analyst.analyze(strategic_request, industry_context)
         governance = self.fiscal_orchestrator.establish_fiscal_governance(analysis)
-        plan = self.senior_manager.create_program_plan(strategic_request, analysis, governance.__dict__, turbo_mode)
+        plan = self.senior_manager.create_program_plan(
+            strategic_request, analysis, governance.__dict__, turbo_mode
+        )
 
         design = self.architect.design(plan)
         implementation = self.coder.build(plan, design)
@@ -237,11 +266,7 @@ class EliteAIEnterprisePro:
             "implementation": sum(implementation.values()),
             "optimization": sum(optimization.values()),
         }
-        dashboard = self.fiscal_orchestrator.monitor_fiscal_operations(
-            spend_summary,
-            fiscal_guidelines=plan.fiscal_guidelines,
-            total_budget=plan.architecture_budget + plan.implementation_budget + plan.optimization_budget,
-        )
+        dashboard = self.fiscal_orchestrator.monitor_fiscal_operations(plan)
 
         delivery = EnterpriseDelivery(
             technical_components={
@@ -264,7 +289,9 @@ class EliteAIEnterprisePro:
             "government": "government_intelligence",
             "energy": "energy_optimization",
         }
-        vertical_key = industry_context.get("vertical_key", vertical_map.get(industry_key, industry_key))
+        vertical_key = industry_context.get(
+            "vertical_key", vertical_map.get(industry_key, industry_key)
+        )
         industry_use_cases = get_use_cases(vertical_key)
 
         roi_report = self.quantum_roi.calculate_multi_dimensional_roi(
@@ -279,7 +306,9 @@ class EliteAIEnterprisePro:
         sales_pipeline = self.business_developer.autonomous_sales_pipeline()
         documentation_suite = self.documentation_ai.generate_commercial_package()
         performance_guarantees = self.performance_ai.enterprise_sla_guarantees()
-        billing_projection = self.billing_engine.estimate(sum(spend_summary.values()), client_config.get("billing_tier", "enterprise"))
+        billing_projection = self.billing_engine.estimate(
+            sum(spend_summary.values()), client_config.get("billing_tier", "enterprise")
+        )
 
         return {
             "delivery": delivery,
@@ -314,4 +343,3 @@ def deploy_elite_enterprise_system() -> FullyOperationalCommercialPlatform:
         valuation="$25-50M",
         time_to_market="Instant deployment",
     )
-

@@ -1,4 +1,5 @@
 """Core dataclasses shared across the Autonomous Fiscal Orchestration Core."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -40,7 +41,9 @@ class FiscalGovernanceFramework:
     generated_at: datetime = field(default_factory=datetime.utcnow)
 
     def summarize(self) -> str:
-        distribution = ", ".join(f"{phase}:{amount:.2f}" for phase, amount in self.budget_distribution.items())
+        distribution = ", ".join(
+            f"{phase}:{amount:.2f}" for phase, amount in self.budget_distribution.items()
+        )
         return f"Budget={self.total_budget_allocation:.2f}; Distribution=[{distribution}]"
 
 
@@ -285,7 +288,10 @@ class FiscalOperationsDashboard:
     generated_at: datetime = field(default_factory=datetime.utcnow)
 
     def summary(self) -> str:
-        top_phase = max(self.budget_burn_rate, key=self.budget_burn_rate.get, default="n/a")
+        def burn_score(phase: str) -> float:
+            return self.budget_burn_rate.get(phase, 0.0)
+
+        top_phase = max(self.budget_burn_rate, key=burn_score, default="n/a")
         return f"Health={self.fiscal_health_score:.2f}; Highest burn={top_phase}"
 
 
@@ -810,4 +816,3 @@ class SecurityAuditResult:
     @property
     def all_secure(self) -> bool:
         return self.scan.all_secure and not self.issues
-

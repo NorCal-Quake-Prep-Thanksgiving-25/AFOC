@@ -1,4 +1,5 @@
 """Industry intelligence catalogue for the commercial EliteAI platform."""
+
 from __future__ import annotations
 
 from typing import Mapping, MutableMapping, Sequence
@@ -52,4 +53,3 @@ def describe_portfolio() -> Mapping[str, int]:
     """Provide a count of available use cases per vertical."""
 
     return {key: len(value) for key, value in hyper_specialized_use_cases.items()}
-

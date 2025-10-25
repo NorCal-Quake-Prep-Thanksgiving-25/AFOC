@@ -1,4 +1,5 @@
 """Legal protection automation for EliteAI commercial assets."""
+
 from __future__ import annotations
 
 import logging
@@ -35,4 +36,3 @@ class LegalProtectionAutomation:
         )
         self.logger.debug("Generated legal headers for modules: %s", modules)
         return header
-

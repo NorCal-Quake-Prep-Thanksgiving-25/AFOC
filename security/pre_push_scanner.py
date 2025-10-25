@@ -1,4 +1,5 @@
 """Pre-push security scanning pipeline."""
+
 from __future__ import annotations
 
 import logging
@@ -57,4 +58,3 @@ if __name__ == "__main__":
     print(f"All secure: {result.all_secure}")
     if not result.all_secure:
         scanner.auto_fix_issues()
-

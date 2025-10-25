@@ -1,4 +1,5 @@
 """Composable intelligence core orchestrating fiscal optimization."""
+
 from __future__ import annotations
 
 import asyncio
@@ -28,8 +29,12 @@ from .datatypes import (
     StrategicPlan,
     StrategicRoadmap,
 )
-from .integrations import AVAILABLE_COLLECTORS, AVAILABLE_DEVOPS_COLLECTORS, AVAILABLE_USAGE_COLLECTORS
-from .monitoring import AFOCPerformanceMonitor
+from .integrations import (
+    AVAILABLE_COLLECTORS,
+    AVAILABLE_DEVOPS_COLLECTORS,
+    AVAILABLE_USAGE_COLLECTORS,
+)
+from .monitoring import AFOCPerformanceMonitor, FiscalMonitor
 from .plugins import registry as plugin_registry
 
 
@@ -45,6 +50,8 @@ class ComposableIntelligenceCore:
         self.event_bus = event_bus or AsyncEventBus()
         self.data_fabric = data_fabric or DataFabric(DataFabricConfig())
         self.performance = AFOCPerformanceMonitor()
+        self.fiscal_monitor = FiscalMonitor()
+        self._fiscal_records: list[OversightRecord] = []
 
         self.budget_agent = BudgetAgent(self.event_bus)
         self.forecast_agent = ForecastAgent(self.event_bus)
@@ -71,15 +78,15 @@ class ComposableIntelligenceCore:
     # Plugin lifecycle
     # ------------------------------------------------------------------
     def _register_default_plugins(self) -> None:
-        for name, collector in AVAILABLE_COLLECTORS.items():
+        for name, cost_collector in AVAILABLE_COLLECTORS.items():
             plugin_registry.unregister(name)
-            plugin_registry.register(name, collector)
-        for name, collector in AVAILABLE_USAGE_COLLECTORS.items():
+            plugin_registry.register(name, cost_collector)
+        for name, usage_collector in AVAILABLE_USAGE_COLLECTORS.items():
             plugin_registry.unregister(name)
-            plugin_registry.register(name, collector)
-        for name, collector in AVAILABLE_DEVOPS_COLLECTORS.items():
+            plugin_registry.register(name, usage_collector)
+        for name, devops_collector in AVAILABLE_DEVOPS_COLLECTORS.items():
             plugin_registry.unregister(name)
-            plugin_registry.register(name, collector)
+            plugin_registry.register(name, devops_collector)
 
     def register_plugin(self, name: str, factory: Any) -> None:
         plugin_registry.unregister(name)
@@ -88,7 +95,9 @@ class ComposableIntelligenceCore:
     # ------------------------------------------------------------------
     # Governance orchestrations
     # ------------------------------------------------------------------
-    def establish_fiscal_governance(self, strategic_analysis: StrategicAnalysis) -> FiscalGovernanceFramework:
+    def establish_fiscal_governance(
+        self, strategic_analysis: StrategicAnalysis
+    ) -> FiscalGovernanceFramework:
         request = self.budget_agent_request_model(
             total_budget=max(1.0, strategic_analysis.feasibility_score * 100.0),
             targets=dict(strategic_analysis.alignment_vector),
@@ -104,7 +113,9 @@ class ComposableIntelligenceCore:
             total_budget_allocation=request.total_budget,
             budget_distribution=response.allocations,
             fiscal_guardrails=guardrails,
-            cost_quality_ratios={k: v / request.total_budget for k, v in response.allocations.items()},
+            cost_quality_ratios={
+                k: v / request.total_budget for k, v in response.allocations.items()
+            },
             resource_efficiency_targets={k: response.efficiency_gain for k in response.allocations},
             roi_thresholds={k: 1.2 for k in response.allocations},
             spending_velocity_controls={k: 0.1 for k in response.allocations},
@@ -112,12 +123,16 @@ class ComposableIntelligenceCore:
             fiscal_health_monitors={k: 0.95 for k in response.allocations},
         )
 
-    def predictive_fiscal_forecasting(self, strategic_roadmap: StrategicRoadmap) -> ForecastResponse:
+    def predictive_fiscal_forecasting(
+        self, strategic_roadmap: StrategicRoadmap
+    ) -> ForecastResponse:
         history = [float(value) for value in strategic_roadmap.fiscal_targets.values()]
         request = self.forecast_agent_request_model(historical_spend=history)
         return self._run_async(self.forecast_agent.forecast(request))
 
-    def execute_fiscal_optimization_cycle(self, rewards: Mapping[str, float]) -> OptimizationResponse:
+    def execute_fiscal_optimization_cycle(
+        self, rewards: Mapping[str, float]
+    ) -> OptimizationResponse:
         request = self.optimization_request_model(
             reward_history=list(rewards.values()),
             actions=list(rewards.keys()),
@@ -133,7 +148,8 @@ class ComposableIntelligenceCore:
         denominator = max(sum(spend.values()), 1.0)
         burn = {phase: amount / denominator for phase, amount in spend.items()}
         health_score = sum(burn.values()) / max(len(burn), 1)
-        return FiscalOperationsDashboard(
+        self._fiscal_records.clear()
+        dashboard = FiscalOperationsDashboard(
             real_time_spending=spend,
             cost_performance_metrics={phase: value for phase, value in burn.items()},
             budget_burn_rate=burn,
@@ -144,8 +160,11 @@ class ComposableIntelligenceCore:
             resource_reallocation_directives={},
             cost_quality_adjustments={},
         )
+        return dashboard
 
-    def validate_strategic_fiscal_alignment(self, dashboard: FiscalOperationsDashboard) -> OversightSummary:
+    def validate_strategic_fiscal_alignment(
+        self, dashboard: FiscalOperationsDashboard
+    ) -> OversightSummary:
         record = OversightRecord(
             phase="composite",
             approved=dashboard.fiscal_health_score >= 0.5,
@@ -160,6 +179,35 @@ class ComposableIntelligenceCore:
             fiscal_average=dashboard.fiscal_health_score,
             total_budget_consumed=sum(dashboard.real_time_spending.values()),
         )
+
+    # ------------------------------------------------------------------
+    # Oversight utilities
+    # ------------------------------------------------------------------
+    def evaluate_phase(
+        self,
+        phase_name: str,
+        strategic_score: float,
+        fiscal_score: float,
+        budget_allocation: float,
+    ) -> OversightRecord:
+        record = OversightRecord(
+            phase=phase_name,
+            approved=strategic_score >= 0.5 and fiscal_score >= 0.5,
+            strategic_score=strategic_score,
+            fiscal_score=fiscal_score,
+            budget_consumed=budget_allocation,
+            commentary="Evaluated via composable intelligence core",
+        )
+        self._fiscal_records.append(record)
+        return record
+
+    def get_fiscal_report(self) -> Mapping[str, float]:
+        summary = self.fiscal_monitor.summarize_oversight(self._fiscal_records)
+        return {
+            "strategic_average": summary.strategic_average,
+            "fiscal_average": summary.fiscal_average,
+            "total_budget_consumed": summary.total_budget_consumed,
+        }
 
     # ------------------------------------------------------------------
     # Utilities

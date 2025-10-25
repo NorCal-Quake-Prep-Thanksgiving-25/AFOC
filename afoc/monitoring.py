@@ -1,4 +1,5 @@
 """Monitoring and governance utilities for the AFOC."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -120,7 +121,9 @@ class FiscalMonitor:
     def snapshot(self) -> MonitoringSnapshot:
         return MonitoringSnapshot(signals=list(self._signals))
 
-    def compute_spending_velocity(self, spending: Mapping[str, float]) -> Sequence[SpendingVelocity]:
+    def compute_spending_velocity(
+        self, spending: Mapping[str, float]
+    ) -> Sequence[SpendingVelocity]:
         velocities = []
         for phase, amount in spending.items():
             alert = "normal"
@@ -163,15 +166,21 @@ class FiscalMonitor:
 
     def summarize_oversight(self, records: Sequence[OversightRecord]) -> OversightSummary:
         if not records:
-            return OversightSummary(records=[], strategic_average=0.0, fiscal_average=0.0, total_budget_consumed=0.0)
+            return OversightSummary(
+                records=[], strategic_average=0.0, fiscal_average=0.0, total_budget_consumed=0.0
+            )
         strategic_avg = sum(record.strategic_score for record in records) / len(records)
         fiscal_avg = sum(record.fiscal_score for record in records) / len(records)
         total_budget = sum(record.budget_consumed for record in records)
-        return OversightSummary(records=records, strategic_average=strategic_avg, fiscal_average=fiscal_avg, total_budget_consumed=total_budget)
+        return OversightSummary(
+            records=records,
+            strategic_average=strategic_avg,
+            fiscal_average=fiscal_avg,
+            total_budget_consumed=total_budget,
+        )
 
     def policy_refresh_needed(self, horizon_days: int = 30) -> bool:
         if not self._policy_state.policies:
             return True
         latest = max(policy.effective_date for policy in self._policy_state.policies)
         return datetime.utcnow() - latest > timedelta(days=horizon_days)
-

@@ -1,4 +1,5 @@
 """Budget allocation agent leveraging constraint solving."""
+
 from __future__ import annotations
 
 from typing import Dict, List, Tuple
@@ -61,10 +62,7 @@ class BudgetAgent:
 
     def _solve_with_ortools(self, request: AllocationRequest) -> AllocationResponse:
         solver = pywraplp.Solver.CreateSolver("GLOP")
-        variables = {
-            name: solver.NumVar(0, request.total_budget, name)
-            for name in request.targets
-        }
+        variables = {name: solver.NumVar(0, request.total_budget, name) for name in request.targets}
         solver.Add(sum(variables.values()) == request.total_budget)
         objective = solver.Objective()
         for name, target in request.targets.items():
@@ -89,8 +87,7 @@ class BudgetAgent:
             weights = weights / weights.sum()
             total = request.total_budget
             allocations = {
-                name: float(total * weight)
-                for name, weight in zip(request.targets.keys(), weights)
+                name: float(total * weight) for name, weight in zip(request.targets.keys(), weights)
             }
             std_dev = float(weights.std())
         else:

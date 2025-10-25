@@ -1,4 +1,5 @@
 """ROI intelligence for the AFOC."""
+
 from __future__ import annotations
 
 from typing import Mapping, Sequence
@@ -14,7 +15,9 @@ class ValueReturnCalculator:
             return 0.0
         return (benefit - cost) / cost
 
-    def generate_report(self, data: Mapping[str, tuple[float, float]], thresholds: Mapping[str, float]) -> ROIIntelligence:
+    def generate_report(
+        self, data: Mapping[str, tuple[float, float]], thresholds: Mapping[str, float]
+    ) -> ROIIntelligence:
         insights = []
         breaches = []
         total_roi = 0.0
@@ -40,6 +43,9 @@ class ValueReturnCalculator:
                         deviation=threshold - roi,
                     )
                 )
-        report = ROIReport(insights=insights, aggregate_roi=total_roi / (len(data) or 1), recommendations=["Increase focus on high ROI initiatives"])
+        report = ROIReport(
+            insights=insights,
+            aggregate_roi=total_roi / (len(data) or 1),
+            recommendations=["Increase focus on high ROI initiatives"],
+        )
         return ROIIntelligence(report=report, breaches=breaches)
-

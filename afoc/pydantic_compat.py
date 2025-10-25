@@ -1,4 +1,5 @@
 """Compatibility helpers providing a lightweight BaseModel when pydantic is unavailable."""
+
 from __future__ import annotations
 
 import json
@@ -6,7 +7,7 @@ from dataclasses import dataclass
 from typing import Any
 
 try:  # pragma: no cover - use real dependency when available
-    from pydantic import BaseModel, Field  # type: ignore
+    from pydantic import BaseModel as PydanticBaseModel, Field
 except Exception:  # pragma: no cover - fallback implementation
 
     class BaseModel:  # type: ignore[misc]
@@ -25,5 +26,8 @@ except Exception:  # pragma: no cover - fallback implementation
 
     def Field(default: Any = None, **_: Any) -> Any:  # type: ignore
         return default
+
+else:
+    BaseModel = PydanticBaseModel  # type: ignore[misc, assignment]
 
 __all__ = ["BaseModel", "Field"]

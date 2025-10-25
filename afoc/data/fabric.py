@@ -1,4 +1,5 @@
 """Data fabric orchestrating relational and cache storage."""
+
 from __future__ import annotations
 
 from contextlib import contextmanager

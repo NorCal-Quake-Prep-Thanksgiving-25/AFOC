@@ -1,4 +1,5 @@
 """High-level orchestration for commercial code protection."""
+
 from __future__ import annotations
 
 import logging
@@ -63,4 +64,3 @@ if __name__ == "__main__":
     protector = CommercialCodeProtector()
     protection_report = protector.protect_eliteai_system()
     print(protection_report.summary())
-

@@ -1,4 +1,5 @@
 """Autonomous business development engine for the EliteAI suite."""
+
 from __future__ import annotations
 
 import random
@@ -55,15 +56,21 @@ class AutonomousBusinessDeveloper:
         return self.personalized_pitch_generator.craft_pitches(base_leads)
 
     def autonomously_schedule_200_demos(self, pitch_count: int | None = None) -> int:
-        base_pitches = pitch_count if pitch_count is not None else self.generate_10000_custom_pitches()
+        base_pitches = (
+            pitch_count if pitch_count is not None else self.generate_10000_custom_pitches()
+        )
         return int(base_pitches * 0.03)
 
     def create_500_custom_proposals(self, demo_count: int | None = None) -> int:
-        base_demos = demo_count if demo_count is not None else self.autonomously_schedule_200_demos()
+        base_demos = (
+            demo_count if demo_count is not None else self.autonomously_schedule_200_demos()
+        )
         return int(base_demos * 2.5)
 
     def negotiate_50_enterprise_deals(self, proposal_count: int | None = None) -> int:
-        base_proposals = proposal_count if proposal_count is not None else self.create_500_custom_proposals()
+        base_proposals = (
+            proposal_count if proposal_count is not None else self.create_500_custom_proposals()
+        )
         return self.contract_negotiation.close_deals(base_proposals)
 
     def automatically_onboard_new_clients(self, deals: int | None = None) -> int:
@@ -78,7 +85,7 @@ class AutonomousBusinessDeveloper:
         deals = self.negotiate_50_enterprise_deals(proposals)
         onboarded = self.automatically_onboard_new_clients(deals)
 
-        noise = random.uniform(0.95, 1.05)
+        noise = random.uniform(0.95, 1.05)  # nosec B311
         return SalesPipeline(
             lead_generation=int(leads * noise),
             personalized_outreach=int(pitches * noise),
@@ -87,4 +94,3 @@ class AutonomousBusinessDeveloper:
             contract_negotiation=int(deals * noise),
             onboarding=int(onboarded * noise),
         )
-

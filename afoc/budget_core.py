@@ -1,4 +1,5 @@
 """Predictive budget intelligence system for the AFOC."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -57,10 +58,16 @@ class BudgetCore:
         return {milestone: base * (idx + 1) for idx, milestone in enumerate(roadmap.milestones)}
 
     def identify_future_savings(self, roadmap: StrategicRoadmap) -> Mapping[str, float]:
-        return {milestone: roadmap.fiscal_targets.get(milestone, 0) * 0.1 for milestone in roadmap.milestones}
+        return {
+            milestone: roadmap.fiscal_targets.get(milestone, 0) * 0.1
+            for milestone in roadmap.milestones
+        }
 
     def assess_future_fiscal_risks(self, roadmap: StrategicRoadmap) -> Mapping[str, float]:
-        return {milestone: max(0.1, 1 - roadmap.scenario_assumptions.get(milestone, 0.5)) for milestone in roadmap.milestones}
+        return {
+            milestone: max(0.1, 1 - roadmap.scenario_assumptions.get(milestone, 0.5))
+            for milestone in roadmap.milestones
+        }
 
     def generate_fiscal_strategies(self, roadmap: StrategicRoadmap) -> Sequence[str]:
         strategies = []
@@ -70,7 +77,9 @@ class BudgetCore:
         return strategies
 
     # Adaptive budgeting ---------------------------------------------------
-    def construct_adaptive_budget(self, baseline: Mapping[str, float], adjustments: Mapping[str, float]) -> AdaptiveBudget:
+    def construct_adaptive_budget(
+        self, baseline: Mapping[str, float], adjustments: Mapping[str, float]
+    ) -> AdaptiveBudget:
         total_baseline = sum(baseline.values()) or 1.0
         normalized_adjustments = {k: v / total_baseline for k, v in adjustments.items()}
         confidence = 1 - min(0.5, sum(abs(v) for v in normalized_adjustments.values()))
@@ -85,10 +94,14 @@ class BudgetCore:
             f"Adjusted {phase} by {adaptive_budget.adjustments.get(phase, 0.0):.2f} to maintain equilibrium"
             for phase in adaptive_budget.baseline
         ]
-        return AdaptiveBudgetOutcome(applied_budget=applied, rationale=rationale, confidence=adaptive_budget.confidence)
+        return AdaptiveBudgetOutcome(
+            applied_budget=applied, rationale=rationale, confidence=adaptive_budget.confidence
+        )
 
     # Forecast evaluation --------------------------------------------------
-    def track_forecast_accuracy(self, forecast_id: str, target: float, actual: float) -> ForecastAccuracy:
+    def track_forecast_accuracy(
+        self, forecast_id: str, target: float, actual: float
+    ) -> ForecastAccuracy:
         accuracy = 1 - abs(target - actual) / (target or 1.0)
         model = self._forecast_models.setdefault(
             forecast_id,
@@ -101,7 +114,11 @@ class BudgetCore:
         audits = []
         for model in self._forecast_models.values():
             accuracy = model.average_accuracy()
-            variance = statistics.pvariance(model.accuracy_history) if len(model.accuracy_history) > 1 else 0.0
+            variance = (
+                statistics.pvariance(model.accuracy_history)
+                if len(model.accuracy_history) > 1
+                else 0.0
+            )
             audits.append(
                 ForecastAudit(
                     forecast_id=model.name,
@@ -112,13 +129,19 @@ class BudgetCore:
             )
         return ForecastAuditTrail(audits=audits)
 
-    def analyse_forecast_drift(self, expected: Mapping[str, float], actual: Mapping[str, float]) -> ForecastDriftReport:
+    def analyse_forecast_drift(
+        self, expected: Mapping[str, float], actual: Mapping[str, float]
+    ) -> ForecastDriftReport:
         drifts = []
         commentary = []
         for metric, target in expected.items():
             actual_value = actual.get(metric, 0.0)
             deviation = actual_value - target
-            drifts.append(ForecastDrift(metric=metric, predicted=target, actual=actual_value, deviation=deviation))
+            drifts.append(
+                ForecastDrift(
+                    metric=metric, predicted=target, actual=actual_value, deviation=deviation
+                )
+            )
             if target == 0:
                 commentary.append(f"No target set for {metric}")
             else:
@@ -135,7 +158,9 @@ class BudgetCore:
             BudgetScenario(
                 scenario_name="baseline",
                 baseline_allocation=forecast.projected_budget_requirements,
-                stress_tests={k: v * 1.2 for k, v in forecast.projected_budget_requirements.items()},
+                stress_tests={
+                    k: v * 1.2 for k, v in forecast.projected_budget_requirements.items()
+                },
                 success_probability=0.8,
                 commentary="Stable outlook",
             )
@@ -157,4 +182,3 @@ class BudgetCore:
             insights=insights,
             recommendations=recommendations,
         )
-

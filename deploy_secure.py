@@ -1,4 +1,5 @@
 """Secure deployment entrypoint for the EliteAI Enterprise platform."""
+
 from __future__ import annotations
 
 import logging
@@ -46,4 +47,3 @@ def deploy_with_security() -> None:
 
 if __name__ == "__main__":
     deploy_with_security()
-

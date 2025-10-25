@@ -7,6 +7,7 @@ interpretability.  They rely on heuristics and moving averages which makes them
 appropriate for deterministic unit testing while still being rich enough to
 simulate a complex fiscal environment.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -64,7 +65,9 @@ class FiscalCognitionUnit:
         normalization = sum(flows.values()) or 1.0
         return {name: value / normalization for name, value in flows.items()}
 
-    def quantify_tradeoff_curves(self, strategic_goals: StrategicRequest) -> Mapping[str, tuple[float, float]]:
+    def quantify_tradeoff_curves(
+        self, strategic_goals: StrategicRequest
+    ) -> Mapping[str, tuple[float, float]]:
         """Derive cost-quality trade-offs for each strategic constraint."""
 
         tradeoffs = {}
@@ -72,7 +75,9 @@ class FiscalCognitionUnit:
             tradeoffs[constraint] = (weight * strategic_goals.expected_roi, 1.0 - weight)
         return tradeoffs
 
-    def optimize_investment_allocation(self, strategic_goals: StrategicRequest) -> Mapping[str, float]:
+    def optimize_investment_allocation(
+        self, strategic_goals: StrategicRequest
+    ) -> Mapping[str, float]:
         """Compute optimal investment distribution for each goal."""
 
         total_weight = sum(strategic_goals.constraints.values()) or 1.0
@@ -109,4 +114,3 @@ class FiscalCognitionUnit:
         alignment = self.generate_roadmap_alignment(roadmap)
         ranked = sorted(alignment.items(), key=lambda item: item[1], reverse=True)
         return [name for name, _ in ranked[:top_n]]
-

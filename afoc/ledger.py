@@ -1,4 +1,5 @@
 """Distributed fiscal ledger implementation."""
+
 from __future__ import annotations
 
 from collections import defaultdict
@@ -32,14 +33,17 @@ class DistributedLedger:
         self.entries.append(entry)
 
     def totals_by_phase(self) -> Mapping[str, float]:
-        totals = defaultdict(float)
+        totals: defaultdict[str, float] = defaultdict(float)
         for entry in self.entries:
             totals[entry.phase] += entry.amount
         return dict(totals)
 
     def burn_rate(self) -> Mapping[str, float]:
         totals = self.totals_by_phase()
-        return {phase: amount / len(self.entries) if self.entries else 0.0 for phase, amount in totals.items()}
+        return {
+            phase: amount / len(self.entries) if self.entries else 0.0
+            for phase, amount in totals.items()
+        }
 
 
 class DistributedFiscalLedger:
@@ -106,7 +110,9 @@ class DistributedFiscalLedger:
         for ledger in self._ledgers.values():
             for entry in ledger.entries:
                 if entry.amount < 0:
-                    exceptions.append(LedgerException(entry=entry, reason="Negative entry detected"))
+                    exceptions.append(
+                        LedgerException(entry=entry, reason="Negative entry detected")
+                    )
         return LedgerExceptionReport(exceptions=exceptions)
 
     def build_spending_alerts(self, threshold: float) -> SpendingAlertFeed:
@@ -123,4 +129,3 @@ class DistributedFiscalLedger:
                         )
                     )
         return SpendingAlertFeed(alerts=alerts)
-

@@ -1,4 +1,5 @@
 """Security guardian agent enforcing zero-trust posture."""
+
 from __future__ import annotations
 
 import time
@@ -47,9 +48,7 @@ class SecurityGuardian:
         else:
             alert = SecurityAlert(severity="info", message="Security posture verified")
         if self._event_bus:
-            await self._event_bus.publish(
-                AgentEvent(type="security.alert", payload=alert.dict())
-            )
+            await self._event_bus.publish(AgentEvent(type="security.alert", payload=alert.dict()))
         return alert
 
     async def _noop(self, event: AgentEvent) -> None:  # pragma: no cover - async hook
