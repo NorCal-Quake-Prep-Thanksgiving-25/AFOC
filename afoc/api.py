@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any, Dict
+from typing import Any, Dict, List
 
 try:  # pragma: no cover - optional dependency
     from fastapi import FastAPI
@@ -48,5 +48,19 @@ def build_api(core: ComposableIntelligenceCore | None = None) -> Any:
     async def audit() -> Dict[str, Any]:
         alert = await resolved_core.security_guardian.audit()
         return alert.dict()
+
+    @app.post("/ingest")
+    async def ingest(records: List[Dict[str, Any]]) -> Dict[str, Any]:
+        report = resolved_core.ingest_collector_payload(records, source="api")
+        return {
+            "ingested": report.ingested,
+            "cached": report.cached,
+            "failed": report.failed,
+            "completed_at": report.completed_at.isoformat(),
+        }
+
+    @app.get("/health")
+    async def health() -> Dict[str, Any]:
+        return resolved_core.healthcheck()
 
     return app

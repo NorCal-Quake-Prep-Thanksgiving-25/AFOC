@@ -13,6 +13,8 @@ from ..intelligence import (
     StatsmodelsForecaster,
     StreamingAnomalyDetector,
 )
+from ..logging import get_logger
+from ..ml.lifecycle import ForecastLogPayload, default_ml_tracker
 from ..pydantic_compat import BaseModel, Field
 
 from .event_bus import AgentEvent, AsyncEventBus
@@ -50,12 +52,14 @@ class ForecastAgent:
     """Produces forecasts and anomaly signals."""
 
     def __init__(self, event_bus: AsyncEventBus | None = None) -> None:
+        self._logger = get_logger(__name__)
         self._event_bus = event_bus
         self._forecaster = BayesianForecaster()
         self._detector = StreamingAnomalyDetector()
         self._smoother = AdaptiveSmoother()
         self._ml_detector: IsolationForestDetector | None
         self._seasonal_model: StatsmodelsForecaster | None
+        self._ml_tracker = default_ml_tracker
         try:
             self._ml_detector = IsolationForestDetector()
         except Exception:  # pragma: no cover - optional dependency unavailable
@@ -120,6 +124,15 @@ class ForecastAgent:
             await self._event_bus.publish(
                 AgentEvent(type="forecast.completed", payload=response.dict())
             )
+        diagnostics_dict = response.diagnostics.dict()
+        self._ml_tracker.log_forecast(
+            ForecastLogPayload(
+                history=request.historical_spend,
+                predictions=response.predictions,
+                diagnostics=diagnostics_dict,
+                tags={"run_name": "forecast", "anomalies": str(len(response.anomalies))},
+            )
+        )
         return response
 
     async def _noop(self, event: AgentEvent) -> None:  # pragma: no cover - async hook

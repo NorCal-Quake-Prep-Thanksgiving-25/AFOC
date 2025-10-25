@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import asyncio
-from typing import Any, Dict, Mapping
+from typing import Any, Dict, Mapping, Sequence
 
 from .agents import (
     AllocationRequest,
@@ -19,7 +19,8 @@ from .agents import (
     OptimizationResponse,
     SecurityGuardian,
 )
-from .data import DataFabric, DataFabricConfig
+from .credentials import CredentialProvider, default_credential_provider
+from .data import DataFabric, DataFabricConfig, IngestionReport
 from .datatypes import (
     FiscalGovernanceFramework,
     FiscalGuardrails,
@@ -35,6 +36,7 @@ from .integrations import (
     AVAILABLE_DEVOPS_COLLECTORS,
     AVAILABLE_USAGE_COLLECTORS,
 )
+from .logging import get_logger
 from .monitoring import AFOCPerformanceMonitor, FiscalMonitor
 from .plugins import registry as plugin_registry
 
@@ -47,9 +49,14 @@ class ComposableIntelligenceCore:
         *,
         data_fabric: DataFabric | None = None,
         event_bus: AsyncEventBus | None = None,
+        credential_provider: CredentialProvider | None = None,
     ) -> None:
+        self.logger = get_logger(__name__)
         self.event_bus = event_bus or AsyncEventBus()
-        self.data_fabric = data_fabric or DataFabric(DataFabricConfig())
+        self.credential_provider = credential_provider or default_credential_provider
+        self.data_fabric = data_fabric or DataFabric(
+            DataFabricConfig(), credential_provider=self.credential_provider
+        )
         self.performance = AFOCPerformanceMonitor()
         self.fiscal_monitor = FiscalMonitor()
         self._fiscal_records: list[OversightRecord] = []
@@ -62,6 +69,7 @@ class ComposableIntelligenceCore:
         self._loop = asyncio.new_event_loop()
         asyncio.set_event_loop(self._loop)
         self._register_default_plugins()
+        self.logger.debug("Composable core initialised", health=self.healthcheck())
 
     # ------------------------------------------------------------------
     # Agent request helpers
@@ -110,7 +118,7 @@ class ComposableIntelligenceCore:
             risk_tolerance=0.4,
             escalation_threshold=0.2,
         )
-        return FiscalGovernanceFramework(
+        framework = FiscalGovernanceFramework(
             total_budget_allocation=request.total_budget,
             budget_distribution=response.allocations,
             fiscal_guardrails=guardrails,
@@ -123,13 +131,35 @@ class ComposableIntelligenceCore:
             auto_reallocation_triggers={k: 0.15 for k in response.allocations},
             fiscal_health_monitors={k: 0.95 for k in response.allocations},
         )
+        self.data_fabric.ingest_records(
+            (
+                {
+                    "id": f"governance-{phase}",
+                    "workload": phase,
+                    "amount": allocation,
+                    "source": "governance",
+                }
+                for phase, allocation in response.allocations.items()
+            ),
+            source="governance",
+        )
+        self.logger.info("Governance established", allocations=response.allocations)
+        return framework
 
     def predictive_fiscal_forecasting(
         self, strategic_roadmap: StrategicRoadmap
     ) -> ForecastResponse:
         history = [float(value) for value in strategic_roadmap.fiscal_targets.values()]
         request = self.forecast_agent_request_model(historical_spend=history)
-        return self._run_async(self.forecast_agent.forecast(request))
+        forecast = self._run_async(self.forecast_agent.forecast(request))
+        self.logger.info(
+            "Forecast completed",
+            mean=forecast.mean,
+            upper=forecast.upper,
+            lower=forecast.lower,
+            history_len=len(history),
+        )
+        return forecast
 
     def execute_fiscal_optimization_cycle(
         self, rewards: Mapping[str, float]
@@ -161,6 +191,18 @@ class ComposableIntelligenceCore:
             resource_reallocation_directives={},
             cost_quality_adjustments={},
         )
+        self.data_fabric.ingest_records(
+            (
+                {
+                    "id": f"ops-{phase}",
+                    "workload": phase,
+                    "amount": amount,
+                    "source": "operations",
+                }
+                for phase, amount in spend.items()
+            ),
+            source="operations",
+        )
         return dashboard
 
     def validate_strategic_fiscal_alignment(
@@ -180,6 +222,36 @@ class ComposableIntelligenceCore:
             fiscal_average=dashboard.fiscal_health_score,
             total_budget_consumed=sum(dashboard.real_time_spending.values()),
         )
+
+    # ------------------------------------------------------------------
+    # Data fabric integrations
+    # ------------------------------------------------------------------
+    def ingest_collector_payload(
+        self, records: Sequence[Mapping[str, Any]], *, source: str
+    ) -> IngestionReport:
+        normalised = [dict(record) for record in records]
+        report = self.data_fabric.ingest_records(normalised, source=source)
+        self.logger.info(
+            "Ingestion completed",
+            source=source,
+            ingested=report.ingested,
+            cached=report.cached,
+            failures=len(report.failed),
+        )
+        return report
+
+    def healthcheck(self) -> Dict[str, Any]:
+        metrics = self.event_bus.metrics()
+        fabric_status = self.data_fabric.healthcheck()
+        return {
+            "event_bus": {
+                "published": metrics.published,
+                "delivered": metrics.delivered,
+                "avg_latency": metrics.avg_latency,
+                "max_latency": metrics.max_latency,
+            },
+            "data_fabric": fabric_status,
+        }
 
     # ------------------------------------------------------------------
     # Oversight utilities

@@ -8,10 +8,19 @@ from typing import TYPE_CHECKING, Any
 from .core import AutonomousFiscalOrchestrationCore, ComposableIntelligenceCore
 from .api import build_api
 from .graphql import build_graphql_router
-from .data import DataFabric, DataFabricConfig
+from .data import DataFabric, DataFabricConfig, IngestionReport
 from .cli import main as cli_main
 from .elite_enterprise import EliteAIEnterprisePro, deploy_elite_enterprise_system
+from .dashboard import launch_streamlit_dashboard
 from .models import GodTierAIEnterpriseSystem
+from .logging import configure_logging, get_logger
+from .credentials import (
+    CredentialProvider,
+    CompositeCredentialProvider,
+    EnvironmentCredentialProvider,
+    KeyringCredentialProvider,
+    default_credential_provider,
+)
 
 if TYPE_CHECKING:  # pragma: no cover - import for static analysis only
     from .tools import (
@@ -30,11 +39,20 @@ __all__ = [
     "GodTierAIEnterpriseSystem",
     "EliteAIEnterprisePro",
     "deploy_elite_enterprise_system",
+    "launch_streamlit_dashboard",
     "build_api",
     "build_graphql_router",
     "DataFabric",
     "DataFabricConfig",
+    "IngestionReport",
     "cli_main",
+    "configure_logging",
+    "get_logger",
+    "CredentialProvider",
+    "CompositeCredentialProvider",
+    "EnvironmentCredentialProvider",
+    "KeyringCredentialProvider",
+    "default_credential_provider",
     "FileInfo",
     "FilePreview",
     "SystemOverview",
