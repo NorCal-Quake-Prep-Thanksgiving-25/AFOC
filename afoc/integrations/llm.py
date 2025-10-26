@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import os
+import random
+import time
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from typing import Dict, Optional
@@ -37,8 +39,16 @@ class LLMUsageCollector:
     provider: str
     api_key_env: str
 
-    def __init__(self, api_key: Optional[str] = None) -> None:
+    def __init__(
+        self,
+        api_key: Optional[str] = None,
+        *,
+        max_attempts: int = 4,
+        initial_backoff: float = 0.5,
+    ) -> None:
         self.api_key = api_key or os.getenv(self.api_key_env)
+        self.max_attempts = max(1, max_attempts)
+        self.initial_backoff = max(0.0, initial_backoff)
 
     def fetch_usage(self) -> LLMUsage:
         start = datetime.now(UTC) - timedelta(days=30)
@@ -74,6 +84,41 @@ class LLMUsageCollector:
     ) -> tuple[int, float]:  # pragma: no cover - interface
         raise NotImplementedError
 
+    def _request_with_backoff(
+        self,
+        *,
+        url: str,
+        headers: Dict[str, str],
+        params: Dict[str, str],
+        label: str,
+    ) -> "httpx.Response":
+        if httpx is None:
+            raise LLMIntegrationError("httpx client is unavailable")
+        attempts = 0
+        delay = self.initial_backoff
+        last_exc: Exception | None = None
+        while attempts < self.max_attempts:
+            attempts += 1
+            try:
+                with httpx.Client(timeout=15) as client:
+                    response = client.get(url, headers=headers, params=params)
+                    response.raise_for_status()
+                    return response
+            except httpx.HTTPStatusError as exc:
+                last_exc = exc
+                status = exc.response.status_code
+                if status not in {429, 500, 502, 503, 504} or attempts >= self.max_attempts:
+                    raise LLMIntegrationError(f"{label} failed with status {status}") from exc
+            except httpx.RequestError as exc:
+                last_exc = exc
+                if attempts >= self.max_attempts:
+                    raise LLMIntegrationError(f"{label} request error: {exc}") from exc
+            if delay:
+                jitter = random.uniform(0, delay / 2)
+                time.sleep(delay + jitter)
+                delay = delay * 2 if delay else 1.0
+        raise LLMIntegrationError(f"{label} failed after retries") from last_exc
+
 
 class OpenAIUsageCollector(LLMUsageCollector):
     provider = "openai"
@@ -90,10 +135,13 @@ class OpenAIUsageCollector(LLMUsageCollector):
         url = "https://api.openai.com/v1/usage"
         headers = {"Authorization": f"Bearer {self.api_key}"}
         params = {"date": start.date().isoformat(), "end_date": end.date().isoformat()}
-        with httpx.Client(timeout=10) as client:
-            response = client.get(url, headers=headers, params=params)
-            response.raise_for_status()
-            payload = response.json()
+        response = self._request_with_backoff(
+            url=url,
+            headers=headers,
+            params=params,
+            label="openai_usage",
+        )
+        payload = response.json()
         # The usage API returns daily aggregates
         total_tokens = int(payload.get("total_usage", {}).get("total_tokens", 0))
         total_cost = float(payload.get("total_usage", {}).get("total_cost", 0.0))
@@ -123,10 +171,12 @@ class AnthropicUsageCollector(LLMUsageCollector):
             "start_date": start.date().isoformat(),
             "end_date": end.date().isoformat(),
         }
-        with httpx.Client(timeout=10) as client:
-            response = client.get(url, headers=headers, params=params)
-            response.raise_for_status()
-            payload = response.json()
+        payload = self._request_with_backoff(
+            url=url,
+            headers=headers,
+            params=params,
+            label="anthropic_usage",
+        ).json()
         totals = payload.get("data", [{}])[-1]
         tokens = int(totals.get("input_tokens", 0) + totals.get("output_tokens", 0))
         cost = float(totals.get("total_cost", 0.0))

@@ -2,3 +2,4 @@ fastapi>=0.111.0
 pydantic>=1.10,<3
 SQLAlchemy>=2.0
 strawberry-graphql>=0.230.0
+cryptography>=43.0.0

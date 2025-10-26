@@ -4,10 +4,16 @@ from __future__ import annotations
 
 import time
 import json
+from hashlib import sha256
 from contextlib import contextmanager
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Any, Dict, Generator, Iterable, List, Optional
+
+try:  # pragma: no cover - optional dependency
+    from cryptography.fernet import Fernet
+except Exception:  # pragma: no cover - fallback when cryptography is unavailable
+    Fernet = None  # type: ignore
 
 try:  # pragma: no cover - optional dependency
     from sqlalchemy import Column, Float, MetaData, String, Table, create_engine, delete, select
@@ -74,6 +80,9 @@ class DataFabric:
         self._spend_table: Any | None = None
         self._cache: Dict[str, Any] = {}
         self._redis: Any | None = None
+        self._fernet = self._initialise_fernet(
+            self.credential_provider.get_secret("encryption_key")
+        )
         self._initialise_relational()
         self._initialise_cache()
 
@@ -112,9 +121,11 @@ class DataFabric:
                 "spend_records",
                 self._metadata,
                 Column("id", String, primary_key=True),
+                Column("tenant_id", String, index=True),
                 Column("workload", String, index=True),
                 Column("amount", Float),
                 Column("source", String, default="manual"),
+                Column("payload", String),
             )
             self._metadata.create_all(self._engine)
         except Exception as exc:  # pragma: no cover - defensive guard
@@ -188,20 +199,52 @@ class DataFabric:
     # CRUD utilities
     # ------------------------------------------------------------------
     def store_spend(
-        self, record_id: str, workload: str, amount: float, source: str = "manual"
+        self,
+        record_id: str,
+        workload: str,
+        amount: float,
+        *,
+        tenant_id: str = "default",
+        source: str = "manual",
     ) -> None:
-        payload = {"id": record_id, "workload": workload, "amount": amount, "source": source}
+        payload = {
+            "id": record_id,
+            "tenant_id": tenant_id,
+            "workload": workload,
+            "amount": amount,
+            "source": source,
+        }
+        encrypted = self._encrypt_payload(payload)
+        cache_key = self._cache_key(tenant_id, workload)
         if self._engine is None or self._Session is None or self._spend_table is None:
-            self.cache_set(f"spend:{record_id}", payload)
+            self.cache_set(cache_key, payload)
             return
         with self.session() as session:
             if session is None or self._spend_table is None:
                 return
-            session.execute(delete(self._spend_table).where(self._spend_table.c.id == record_id))
-            session.execute(self._spend_table.insert().values(payload))
+            session.execute(
+                delete(self._spend_table).where(
+                    (self._spend_table.c.id == record_id)
+                    & (self._spend_table.c.tenant_id == tenant_id)
+                )
+            )
+            session.execute(
+                self._spend_table.insert().values(
+                    {
+                        "id": record_id,
+                        "tenant_id": tenant_id,
+                        "workload": workload,
+                        "amount": amount,
+                        "source": source,
+                        "payload": encrypted,
+                    }
+                )
+            )
+        self.cache_set(cache_key, payload)
 
-    def fetch_spend(self, workload: str) -> float:
-        cached = self.cache_get(f"spend:{workload}")
+    def fetch_spend(self, workload: str, *, tenant_id: str = "default") -> float:
+        cache_key = self._cache_key(tenant_id, workload)
+        cached = self.cache_get(cache_key)
         if cached:
             return float(cached.get("amount", 0.0))
         if (
@@ -215,11 +258,19 @@ class DataFabric:
             if session is None:
                 return 0.0
             result = session.execute(
-                select(self._spend_table.c.amount).where(self._spend_table.c.workload == workload)
+                select(self._spend_table.c.amount, self._spend_table.c.payload)
+                .where(
+                    (self._spend_table.c.workload == workload)
+                    & (self._spend_table.c.tenant_id == tenant_id)
+                )
+                .limit(1)
             ).fetchone()
             if result:
                 amount = float(result[0])
-                self.cache_set(f"spend:{workload}", {"workload": workload, "amount": amount})
+                payload = self._decrypt_payload(result[1])
+                if isinstance(payload, dict):
+                    amount = float(payload.get("amount", amount))
+                self.cache_set(cache_key, {"workload": workload, "amount": amount})
                 return amount
         return 0.0
 
@@ -242,12 +293,19 @@ class DataFabric:
             record_id = str(item.get("id") or item.get("workload") or f"anon-{ingested}")
             workload = str(item.get("workload", record_id))
             amount = float(item.get("amount", 0.0))
+            tenant_id = str(item.get("tenant_id", "default"))
             attempts = 0
             stored = False
             while attempts < max_attempts and not stored:
                 attempts += 1
                 try:
-                    self.store_spend(record_id, workload, amount, source=source)
+                    self.store_spend(
+                        record_id,
+                        workload,
+                        amount,
+                        tenant_id=tenant_id,
+                        source=source,
+                    )
                     ingested += 1
                     stored = True
                 except Exception as exc:  # pragma: no cover - defensive guard
@@ -262,7 +320,10 @@ class DataFabric:
                     else:
                         time.sleep(backoff_seconds * attempts)
             if not stored:
-                self.cache_set(f"spend:{record_id}", {"workload": workload, "amount": amount})
+                self.cache_set(
+                    self._cache_key(tenant_id, record_id),
+                    {"workload": workload, "amount": amount},
+                )
                 cached += 1
         completed = datetime.now(timezone.utc)
         return IngestionReport(
@@ -284,6 +345,7 @@ class DataFabric:
             "cache": cache_ready,
             "database_url": self.config.database_url,
             "cache_url": self.config.cache_url,
+            "encryption": bool(self._fernet),
         }
 
     def close(self) -> None:
@@ -294,3 +356,48 @@ class DataFabric:
                 self._redis.close()
             except Exception as exc:  # pragma: no cover - redis close optional
                 logger.debug("Failed to close redis connection", error=str(exc))
+
+    # ------------------------------------------------------------------
+    # Encryption helpers
+    # ------------------------------------------------------------------
+    def _initialise_fernet(self, key: str | None) -> Any:
+        if not key:
+            return None
+        if Fernet is None:
+            logger.warning("Encryption key provided but cryptography is unavailable")
+            return None
+        try:
+            if isinstance(key, str):
+                key_bytes = key.encode()
+            else:
+                key_bytes = key
+            return Fernet(key_bytes)
+        except Exception as exc:  # pragma: no cover - invalid key
+            logger.error("Invalid encryption key supplied", error=str(exc))
+            return None
+
+    def _encrypt_payload(self, payload: Dict[str, Any]) -> str:
+        serialised = json.dumps(payload)
+        if self._fernet is None:
+            return serialised
+        token = self._fernet.encrypt(serialised.encode("utf-8"))
+        return token.decode("utf-8")
+
+    def _decrypt_payload(self, token: Any) -> Dict[str, Any] | None:
+        if token is None:
+            return None
+        raw = str(token)
+        if self._fernet is None:
+            try:
+                return json.loads(raw)
+            except Exception:
+                return None
+        try:
+            decrypted = self._fernet.decrypt(raw.encode("utf-8"))
+            return json.loads(decrypted)
+        except Exception:  # pragma: no cover - invalid token
+            return None
+
+    def _cache_key(self, tenant_id: str, key: str) -> str:
+        digest = sha256(f"{tenant_id}:{key}".encode("utf-8")).hexdigest()
+        return f"tenant:{tenant_id}:key:{digest}"

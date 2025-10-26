@@ -17,6 +17,7 @@ from .llm import (
     LLMIntegrationError,
     LLMUsage,
     LLMUsageCollector,
+    OpenAIUsageCollector,
 )
 from .alerts import AlertDispatcher, AlertResult, EmailNotifier, SlackWebhookNotifier
 
@@ -37,6 +38,7 @@ __all__ = [
     "LLMUsage",
     "LLMUsageCollector",
     "LLMIntegrationError",
+    "OpenAIUsageCollector",
     "AlertDispatcher",
     "AlertResult",
     "EmailNotifier",

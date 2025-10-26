@@ -69,15 +69,17 @@ python -m afoc.cli ingest --records analytics:1000 marketing:750 --source quicks
 ## Data Fabric & Persistence
 
 - `afoc.data.DataFabric` now supports SQLAlchemy-powered relational stores, Redis caches, and ingestion pipelines with retry/backoff and health reporting.
+- Built-in multi-tenant isolation stores every spend record with a tenant hash and encrypted payload (`AFOC_ENCRYPTION_KEY`), ensuring encryption-at-rest even on shared databases.
 - Secrets resolve through `afoc.credentials` providers (environment, keyring, composite) for zero-trust deployments.
 - Use `core.ingest_collector_payload` to persist plugin data directly into the shared store.
+- Health checks expose relational/cache/encryption status for observability and compliance dashboards.
 
 ## Integrations
 
 | Domain | Connector | Notes |
 |--------|-----------|-------|
-| Cloud Spend | `AWSCostCollector`, `AzureCostCollector`, `GCPCostCollector` | Uses native SDKs with synthetic fallback when credentials are absent. |
-| LLM Usage | `OpenAIUsageCollector`, `AnthropicUsageCollector` | Pulls token + cost summaries via REST; masks API keys through env vars. |
+| Cloud Spend | `AWSCostCollector`, `AzureCostCollector`, `GCPCostCollector` | Native SDK calls with exponential backoff, pagination, and idempotent BigQuery jobs; synthetic fallback when credentials are absent. |
+| LLM Usage | `OpenAIUsageCollector`, `AnthropicUsageCollector` | Backoff-aware REST clients with 429 retries and deterministic fallback when keys are missing. |
 | DevOps | `GitHubCollector`, `DatadogCollector`, `GrafanaCollector` | Fetches live metrics when tokens are provided, otherwise reverts to deterministic synthetic values. |
 
 ## Intelligence Stack
