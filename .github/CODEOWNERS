@@ -1,0 +1,7 @@
+# Default owners for the repository
+*       @your-username
+
+# Critical packages
+afoc/   @your-username
+security/ @your-username
+commercial/ @your-username
