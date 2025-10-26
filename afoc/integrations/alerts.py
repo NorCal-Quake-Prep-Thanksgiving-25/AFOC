@@ -5,7 +5,9 @@ from __future__ import annotations
 import json
 import logging
 import os
+import random
 import smtplib
+import time
 from dataclasses import asdict, dataclass
 from email.message import EmailMessage
 from typing import Optional
@@ -16,6 +18,7 @@ except Exception:  # pragma: no cover - fallback when httpx unavailable
     httpx = None  # type: ignore
 
 from ..agents.event_bus import AgentEvent
+from ..reliability import CircuitBreaker, CircuitBreakerOpen
 
 LOGGER = logging.getLogger(__name__)
 
@@ -32,20 +35,62 @@ class AlertResult:
 class SlackWebhookNotifier:
     """Send alerts to Slack via webhook with graceful fallback."""
 
-    def __init__(self, webhook_url: Optional[str] = None) -> None:
+    def __init__(
+        self,
+        webhook_url: Optional[str] = None,
+        *,
+        max_attempts: int = 3,
+        initial_backoff: float = 0.5,
+    ) -> None:
         self.webhook_url = webhook_url or os.getenv("AFOC_SLACK_WEBHOOK")
+        self.max_attempts = max(1, max_attempts)
+        self.initial_backoff = max(0.0, initial_backoff)
+        self._breaker = CircuitBreaker(
+            failure_threshold=3,
+            recovery_timeout=45.0,
+            on_state_change=lambda state: LOGGER.debug(
+                "slack circuit state changed", extra={"state": state}
+            ),
+        )
 
     def notify(self, message: str) -> AlertResult:
         if not self.webhook_url or httpx is None:
             LOGGER.info("Slack webhook unavailable, logging alert: %s", message)
             return AlertResult(False, "slack", "webhook unavailable")
+        try:
+            return self._breaker.call(lambda: self._post_with_retry(message))
+        except CircuitBreakerOpen:
+            LOGGER.warning("Slack circuit open; dropping alert")
+            return AlertResult(False, "slack", "circuit-open")
+        except Exception as exc:  # pragma: no cover - network guard
+            LOGGER.warning("Slack delivery failed: %s", exc)
+            return AlertResult(False, "slack", str(exc))
+
+    def _post_with_retry(self, message: str) -> AlertResult:
         payload = {"text": message}
-        with httpx.Client(timeout=10) as client:
-            response = client.post(self.webhook_url, json=payload)
-            if response.status_code >= 400:
-                LOGGER.warning("Slack webhook returned %s", response.status_code)
-                return AlertResult(False, "slack", f"status {response.status_code}")
-        return AlertResult(True, "slack", "delivered")
+        delay = self.initial_backoff
+        attempts = 0
+        last_status: Optional[int] = None
+        while attempts < self.max_attempts:
+            attempts += 1
+            try:
+                with httpx.Client(timeout=10) as client:
+                    response = client.post(self.webhook_url, json=payload)
+                    if response.status_code < 400:
+                        return AlertResult(True, "slack", "delivered")
+                    last_status = response.status_code
+                    if response.status_code not in {429, 500, 502, 503, 504}:
+                        break
+            except Exception as exc:
+                last_status = None
+                if attempts >= self.max_attempts:
+                    raise exc
+            if attempts < self.max_attempts and delay:
+                jitter = random.uniform(0, delay / 2)
+                time.sleep(delay + jitter)
+                delay = delay * 2 if delay else 1.0
+        detail = f"status {last_status}" if last_status is not None else "error"
+        raise RuntimeError(detail)
 
 
 class EmailNotifier:

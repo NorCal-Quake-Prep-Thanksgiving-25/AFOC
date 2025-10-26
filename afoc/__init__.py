@@ -21,6 +21,7 @@ from .credentials import (
     CompositeCredentialProvider,
     EnvironmentCredentialProvider,
     KeyringCredentialProvider,
+    KMSCipherCredentialProvider,
     default_credential_provider,
 )
 
@@ -57,6 +58,7 @@ __all__ = [
     "CompositeCredentialProvider",
     "EnvironmentCredentialProvider",
     "KeyringCredentialProvider",
+    "KMSCipherCredentialProvider",
     "default_credential_provider",
     "FileInfo",
     "FilePreview",

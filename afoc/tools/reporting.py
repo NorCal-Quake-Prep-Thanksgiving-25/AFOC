@@ -46,6 +46,22 @@ def export_pdf_summary(
     pdf.cell(0, 8, "Real-time Spending", ln=True)
     for phase, amount in dashboard.real_time_spending.items():
         pdf.cell(0, 6, f"{phase}: ${amount:,.2f}", ln=True)
+    pdf.add_page()
+    pdf.cell(0, 8, "Key Performance Indicators", ln=True)
+    pdf.cell(
+        0,
+        6,
+        f"Policy violation MTTR: {dashboard.policy_violation_mttr_hours:.1f} hours",
+        ln=True,
+    )
+    for phase, cpu in dashboard.cost_per_unit.items():
+        quality = dashboard.quality_scores.get(phase, 0.0)
+        pdf.cell(
+            0,
+            6,
+            f"{phase}: cost/unit=${cpu:,.2f}, quality={quality:.2f}",
+            ln=True,
+        )
     pdf.output(destination)
     return destination
 

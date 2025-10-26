@@ -311,6 +311,9 @@ class FiscalOperationsDashboard:
     recommended_optimizations: Sequence[str]
     resource_reallocation_directives: Mapping[str, float]
     cost_quality_adjustments: Mapping[str, float]
+    cost_per_unit: Mapping[str, float]
+    quality_scores: Mapping[str, float]
+    policy_violation_mttr_hours: float
     generated_at: datetime = field(default_factory=datetime.utcnow)
 
     def summary(self) -> str:
@@ -318,7 +321,12 @@ class FiscalOperationsDashboard:
             return self.budget_burn_rate.get(phase, 0.0)
 
         top_phase = max(self.budget_burn_rate, key=burn_score, default="n/a")
-        return f"Health={self.fiscal_health_score:.2f}; Highest burn={top_phase}"
+        cost_values = list(self.cost_per_unit.values())
+        avg_cost = sum(cost_values) / max(len(cost_values), 1)
+        return (
+            f"Health={self.fiscal_health_score:.2f}; Highest burn={top_phase}; "
+            f"Avg cost/unit={avg_cost:.2f}; MTTR={self.policy_violation_mttr_hours:.1f}h"
+        )
 
 
 # ---------------------------------------------------------------------------

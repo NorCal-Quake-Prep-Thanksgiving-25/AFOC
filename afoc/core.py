@@ -41,6 +41,7 @@ from .integrations.alerts import AlertDispatcher
 from .logging import get_logger
 from .monitoring import AFOCPerformanceMonitor, FiscalMonitor
 from .plugins import registry as plugin_registry
+from .reliability import JobQueue
 
 
 class ComposableIntelligenceCore:
@@ -59,6 +60,7 @@ class ComposableIntelligenceCore:
         self.data_fabric = data_fabric or DataFabric(
             DataFabricConfig(), credential_provider=self.credential_provider
         )
+        self.job_queue = JobQueue(self.data_fabric)
         self.performance = AFOCPerformanceMonitor()
         self.fiscal_monitor = FiscalMonitor()
         self._fiscal_records: list[OversightRecord] = []
@@ -185,6 +187,18 @@ class ComposableIntelligenceCore:
         denominator = max(sum(spend.values()), 1.0)
         burn = {phase: amount / denominator for phase, amount in spend.items()}
         health_score = sum(burn.values()) / max(len(burn), 1)
+        tenant_id = self._resolve_tenant(plan)
+        cost_per_unit = {
+            "architecture": plan.architecture_budget / max(len(plan.architectural_tasks), 1),
+            "implementation": plan.implementation_budget / max(len(plan.implementation_tasks), 1),
+            "optimization": plan.optimization_budget / max(len(plan.optimization_tasks), 1),
+        }
+        quality_scores = {phase: float(plan.performance_slas.get(phase, 0.9)) for phase in spend}
+        snapshot = self.fiscal_monitor.snapshot()
+        breach_report = self.fiscal_monitor.detect_policy_breaches(snapshot)
+        policy_mttr = (
+            0.0 if not breach_report.breaches else max(1.0, 24.0 / len(breach_report.breaches))
+        )
         self._fiscal_records.clear()
         dashboard = FiscalOperationsDashboard(
             real_time_spending=spend,
@@ -196,6 +210,9 @@ class ComposableIntelligenceCore:
             ],
             resource_reallocation_directives={},
             cost_quality_adjustments={},
+            cost_per_unit=cost_per_unit,
+            quality_scores=quality_scores,
+            policy_violation_mttr_hours=policy_mttr,
         )
         self.data_fabric.ingest_records(
             (
@@ -203,11 +220,41 @@ class ComposableIntelligenceCore:
                     "id": f"ops-{phase}",
                     "workload": phase,
                     "amount": amount,
+                    "tenant_id": tenant_id,
                     "source": "operations",
                 }
                 for phase, amount in spend.items()
             ),
             source="operations",
+        )
+        lease = self.job_queue.lease(
+            tenant_id=tenant_id,
+            worker_id="core",
+            visibility_timeout=45,
+        )
+        if lease is None:
+            job = self.job_queue.enqueue(
+                tenant_id=tenant_id,
+                job_id=f"reconcile-{int(dashboard.generated_at.timestamp() * 1000)}",
+                payload={"burn": burn, "health": dashboard.fiscal_health_score},
+            )
+            self.data_fabric.record_audit_event(
+                tenant_id,
+                "job.enqueued",
+                {"job_id": job.job_id, "status": job.status},
+            )
+        else:
+            self.data_fabric.record_audit_event(
+                tenant_id,
+                "job.processed",
+                {"job_id": lease.job_id, "attempts": lease.attempts},
+            )
+            self.job_queue.complete(lease)
+        self.logger.info(
+            "Operations monitored",
+            health=dashboard.fiscal_health_score,
+            burn=dashboard.budget_burn_rate,
+            tenant=tenant_id,
         )
         return dashboard
 
@@ -245,6 +292,14 @@ class ComposableIntelligenceCore:
             failures=len(report.failed),
         )
         return report
+
+    def _resolve_tenant(self, plan: StrategicPlan) -> str:
+        for container in (plan.fiscal_constraints, plan.fiscal_guidelines):
+            if isinstance(container, Mapping):
+                for key in ("tenant_id", "tenant", "account"):
+                    if key in container:
+                        return str(container[key])
+        return "default"
 
     def healthcheck(self) -> Dict[str, Any]:
         metrics = self.event_bus.metrics()

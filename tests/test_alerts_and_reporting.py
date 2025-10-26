@@ -3,13 +3,15 @@ from __future__ import annotations
 import asyncio
 import json
 
+import pytest
+
 from afoc.agents.event_bus import AgentEvent
 from afoc.datatypes import (
     FiscalGovernanceFramework,
     FiscalGuardrails,
     FiscalOperationsDashboard,
 )
-from afoc.integrations.alerts import AlertDispatcher, AlertResult
+from afoc.integrations.alerts import AlertDispatcher, AlertResult, SlackWebhookNotifier
 from afoc.tools.reporting import export_pdf_summary
 
 
@@ -75,6 +77,9 @@ def test_export_pdf_summary_fallback(tmp_path) -> None:
         recommended_optimizations=["Shift budget to architecture"],
         resource_reallocation_directives={"architecture": 0.1},
         cost_quality_adjustments={},
+        cost_per_unit={"architecture": 100.0, "ops": 80.0},
+        quality_scores={"architecture": 0.92, "ops": 0.9},
+        policy_violation_mttr_hours=12.0,
     )
     output = export_pdf_summary(
         governance=framework,
@@ -83,3 +88,37 @@ def test_export_pdf_summary_fallback(tmp_path) -> None:
     )
     content = json.loads(output.read_text())
     assert content["governance"]["total_budget_allocation"] == 1000.0
+
+
+def test_slack_notifier_retries(monkeypatch: pytest.MonkeyPatch) -> None:
+    httpx = pytest.importorskip("httpx")
+
+    class DummyResponse:
+        def __init__(self, status_code: int, request: httpx.Request) -> None:
+            self.status_code = status_code
+            self.request = request
+
+    class DummyClient:
+        def __init__(self) -> None:
+            self.calls = 0
+
+        def __enter__(self) -> "DummyClient":
+            return self
+
+        def __exit__(self, *_: object) -> None:
+            return None
+
+        def post(self, url: str, json: dict[str, str]) -> DummyResponse:
+            self.calls += 1
+            request = httpx.Request("POST", url, json=json)
+            if self.calls == 1:
+                return DummyResponse(500, request)
+            return DummyResponse(200, request)
+
+    dummy_client = DummyClient()
+    monkeypatch.setattr("afoc.integrations.alerts.httpx.Client", lambda timeout=10: dummy_client)
+
+    notifier = SlackWebhookNotifier(webhook_url="https://hooks.slack.test", initial_backoff=0.0)
+    result = notifier.notify("critical alert")
+    assert result.delivered is True
+    assert dummy_client.calls == 2

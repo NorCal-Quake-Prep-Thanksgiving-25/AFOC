@@ -17,6 +17,7 @@ from afoc.integrations import (
     GCPCostCollector,
     OpenAIUsageCollector,
 )
+from afoc.integrations.cloud import CloudSpendSample, CostCollector
 
 
 def test_cloud_collectors_fallback_to_synthetic() -> None:
@@ -177,3 +178,22 @@ def test_openai_usage_collector_retries_rate_limits(monkeypatch: pytest.MonkeyPa
     assert usage.tokens == 1000
     assert usage.cost_usd == 10.5
     assert dummy_client.calls == 2
+
+
+def test_cost_collector_circuit_breaker_falls_back() -> None:
+    window = CloudSpendWindow(start=date(2024, 3, 1), end=date(2024, 3, 2))
+
+    class ExplodingCollector(CostCollector):
+        provider = "exploding"
+
+        def _collect(self, window: CloudSpendWindow):  # type: ignore[override]
+            raise RuntimeError("boom")
+
+    collector = ExplodingCollector(
+        max_attempts=1,
+        initial_backoff=0.0,
+        breaker_failure_threshold=1,
+        breaker_reset_timeout=1.0,
+    )
+    samples = collector.collect(window)
+    assert samples and all(isinstance(sample, CloudSpendSample) for sample in samples)

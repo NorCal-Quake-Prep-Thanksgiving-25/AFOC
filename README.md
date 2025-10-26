@@ -68,10 +68,10 @@ python -m afoc.cli ingest --records analytics:1000 marketing:750 --source quicks
 
 ## Data Fabric & Persistence
 
-- `afoc.data.DataFabric` now supports SQLAlchemy-powered relational stores, Redis caches, and ingestion pipelines with retry/backoff and health reporting.
-- Built-in multi-tenant isolation stores every spend record with a tenant hash and encrypted payload (`AFOC_ENCRYPTION_KEY`), ensuring encryption-at-rest even on shared databases.
-- Secrets resolve through `afoc.credentials` providers (environment, keyring, composite) for zero-trust deployments.
-- Use `core.ingest_collector_payload` to persist plugin data directly into the shared store.
+- `afoc.data.DataFabric` now supports SQLAlchemy-powered relational stores, Redis caches, ingestion pipelines with retry/backoff, **and a durable job queue with audit logging** for idempotent background processing.
+- Built-in multi-tenant isolation stores every spend record with a tenant namespace, per-tenant encryption keys, and append-only audit trails for compliance evidence.
+- Secrets resolve through `afoc.credentials` providers (environment, keyring, **cloud KMS decryptor**, composite) for zero-trust deployments.
+- Use `core.ingest_collector_payload` to persist plugin data directly into the shared store, and `core.monitor_fiscal_operations` to auto-enqueue reconciliation jobs per tenant.
 - Health checks expose relational/cache/encryption status for observability and compliance dashboards.
 
 ## Integrations
@@ -97,6 +97,7 @@ python -m afoc.cli ingest --records analytics:1000 marketing:750 --source quicks
 
 - `.github/workflows/ci.yml` enforces lint, type, security, and coverage checks.
 - CodeQL + Dependabot pipelines guard the supply chain.
+- CI publishes a CycloneDX SBOM artifact and release workflow signs wheels with Sigstore.
 - `security/` package includes pre-push scanning, obfuscation, auditing, and repository hardening helpers.
 
 ## Testing

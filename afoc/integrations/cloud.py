@@ -12,6 +12,7 @@ from typing import Any, Callable, Dict, Iterable, List, TypeVar
 import logging
 
 from ..pydantic_compat import BaseModel, Field
+from ..reliability import CircuitBreaker, CircuitBreakerOpen
 
 LOGGER = logging.getLogger(__name__)
 
@@ -54,17 +55,28 @@ class CostCollector(BaseModel):
     credentials_ref: str | None = None
     max_attempts: int = Field(default=4, ge=1)
     initial_backoff: float = Field(default=0.5, ge=0.0)
+    breaker_failure_threshold: int = Field(default=5, ge=1)
+    breaker_reset_timeout: float = Field(default=60.0, ge=1.0)
 
     class Config:
         arbitrary_types_allowed = True
 
+    def __init__(self, **data: Any) -> None:  # type: ignore[override]
+        super().__init__(**data)
+        self._breaker = CircuitBreaker(
+            failure_threshold=self.breaker_failure_threshold,
+            recovery_timeout=self.breaker_reset_timeout,
+            on_state_change=self._log_breaker_state,
+        )
+
     def collect(self, window: CloudSpendWindow | None = None) -> List[CloudSpendSample]:
         window = window or CloudSpendWindow.trailing_days()
         try:
-            samples = list(self._collect(window))
-            if not samples:
-                raise IntegrationError("Provider returned no spend data")
-            return samples
+            samples = self._breaker.call(lambda: self._collect_with_guard(window))
+            return list(samples)
+        except CircuitBreakerOpen:
+            LOGGER.warning("Circuit breaker open for provider %s", self.provider)
+            return self._simulate(window)
         except MissingDependencyError:
             LOGGER.warning(
                 "Provider dependencies missing for %s; using synthetic data", self.provider
@@ -162,6 +174,15 @@ class CostCollector(BaseModel):
         except Exception:
             pass
         return False
+
+    def _collect_with_guard(self, window: CloudSpendWindow) -> Iterable[CloudSpendSample]:
+        samples = list(self._collect(window))
+        if not samples:
+            raise IntegrationError("Provider returned no spend data")
+        return samples
+
+    def _log_breaker_state(self, state: str) -> None:
+        LOGGER.debug("collector circuit state", extra={"provider": self.provider, "state": state})
 
 
 class AWSCostCollector(CostCollector):
