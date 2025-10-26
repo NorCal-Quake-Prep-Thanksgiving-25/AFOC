@@ -15,6 +15,7 @@ self-learning intelligence, and hardened governance.
 | **Quantum Optimisation** | Optional PennyLane/Qiskit solvers with quantum-inspired fallbacks drive ROI refinements. | Higher-confidence budget actions with explainable quantum summaries. |
 | **Security & DevOps** | GitHub governance, CodeQL, Dependabot, signed commits, security scanner CLI. | Enterprise-grade compliance posture. |
 | **Experience Layer** | FastAPI façade, GraphQL router, Streamlit dashboard, expanded CLI/overview tooling. | API, automation, operator visibility, and executive dashboards. |
+| **Alerts & Reporting** | Slack/email dispatchers, guardrail breach telemetry, and notebook-driven PDF export. | CFO-ready insights and shareable executive artefacts. |
 
 ## Quick Start
 
@@ -53,6 +54,17 @@ python -m afoc.cli ingest --records analytics:1000 marketing:750 --source quicks
 - `afoc.graphql.build_graphql_router()` publishes the same capabilities through a GraphQL schema.
 - `afoc.dashboard.launch_streamlit_dashboard()` renders the Streamlit UI (run via `streamlit run -m afoc.dashboard.streamlit_app`).
 - `python -m afoc.tools.overview --preview` prints a real-time project inventory.
+
+### Authentication & Alerts
+
+- Set `AFOC_API_KEY` to enforce token authentication on every FastAPI endpoint (header `X-API-Key`).
+- Configure `AFOC_SLACK_WEBHOOK` or `AFOC_SMTP_*` / `AFOC_ALERT_RECIPIENTS` to receive anomaly and security alerts via Slack or email.
+- `python -m afoc.cli audit` and Streamlit dashboards surface guardrail breaches with the same alerting backends.
+
+## Demo Notebook & Reporting
+
+- `demo.ipynb` walks through the six-model workflow and generates a shareable PDF (text fallback when `fpdf` is not installed).
+- Programmatic export is available via `from afoc.tools import export_pdf_summary`.
 
 ## Data Fabric & Persistence
 
@@ -100,6 +112,7 @@ pip install afoc[integrations]
 pip install afoc[data]
 pip install afoc[observability]
 pip install afoc[quantum]
+pip install afoc[reports]
 
 ## Six-Model Integration Flow
 

@@ -15,6 +15,7 @@ if TYPE_CHECKING:  # pragma: no cover - import only for typing
         print_preview_view,
         print_system_overview,
     )
+    from .reporting import export_pdf_summary
 
 __all__ = [
     "FileInfo",
@@ -24,10 +25,15 @@ __all__ = [
     "generate_system_overview",
     "print_preview_view",
     "print_system_overview",
+    "export_pdf_summary",
 ]
 
 
 def __getattr__(name: str) -> Any:
+    if name in {"export_pdf_summary"}:
+        module = import_module(".reporting", __name__)
+        attr = getattr(module, name)
+        return attr
     if name in __all__:
         module = import_module(".overview", __name__)
         return getattr(module, name)

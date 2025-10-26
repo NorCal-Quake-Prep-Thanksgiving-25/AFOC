@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import json
 from typing import Any, Dict, Mapping, Sequence
 
 from .agents import (
@@ -36,6 +37,7 @@ from .integrations import (
     AVAILABLE_DEVOPS_COLLECTORS,
     AVAILABLE_USAGE_COLLECTORS,
 )
+from .integrations.alerts import AlertDispatcher
 from .logging import get_logger
 from .monitoring import AFOCPerformanceMonitor, FiscalMonitor
 from .plugins import registry as plugin_registry
@@ -65,6 +67,10 @@ class ComposableIntelligenceCore:
         self.forecast_agent = ForecastAgent(self.event_bus)
         self.roi_engine = ROIEngine(self.event_bus)
         self.security_guardian = SecurityGuardian(self.event_bus)
+        self.alert_dispatcher = AlertDispatcher()
+
+        self.event_bus.subscribe("forecast.completed", self.alert_dispatcher.handle_event)
+        self.event_bus.subscribe("security.alert", self.alert_dispatcher.handle_event)
 
         self._loop = asyncio.new_event_loop()
         asyncio.set_event_loop(self._loop)
@@ -252,6 +258,7 @@ class ComposableIntelligenceCore:
             },
             "data_fabric": fabric_status,
             "quantum": self.roi_engine.quantum_capabilities(),
+            "alerts": json.loads(self.alert_dispatcher.emit_json_summary()),
         }
 
     # ------------------------------------------------------------------

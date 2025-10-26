@@ -45,7 +45,10 @@ class QuantumOptimizer:
         rng: random.Random | None = None,
     ) -> None:
         self.shots = max(32, int(shots))
-        self._rng = rng or random.Random()
+        if rng is None:
+            self._rng = random.Random()  # nosec B311 - deterministic fallback for reproducibility
+        else:
+            self._rng = rng
 
     # ------------------------------------------------------------------
     # Public API

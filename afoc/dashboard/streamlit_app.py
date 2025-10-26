@@ -2,10 +2,11 @@
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, Dict
 
 from ..core import ComposableIntelligenceCore
 from ..logging import get_logger
+from ..datatypes import MonitoringSignal
 
 
 logger = get_logger(__name__)
@@ -22,6 +23,7 @@ def launch_streamlit_dashboard(core: ComposableIntelligenceCore | None = None) -
     resolved_core = core or ComposableIntelligenceCore()
     st.set_page_config(page_title="AFOC Command Core", layout="wide")
     st.title("Autonomous Fiscal Command Dashboard")
+    st.sidebar.header("Controls")
 
     overview = resolved_core.healthcheck()
     st.subheader("Platform Health")
@@ -50,6 +52,53 @@ def launch_streamlit_dashboard(core: ComposableIntelligenceCore | None = None) -
     dashboard = resolved_core.monitor_fiscal_operations(sample_plan)
     st.bar_chart(dashboard.real_time_spending)
     st.json(dashboard.recommended_optimizations)
+
+    monitor = resolved_core.fiscal_monitor
+    monitor.initialize([])
+    for phase, burn in dashboard.budget_burn_rate.items():
+        status = "critical" if burn > 0.45 else "normal"
+        monitor.capture_signal(
+            MonitoringSignal(signal_name=f"burn::{phase}", value=burn, status=status)
+        )
+    snapshot = monitor.snapshot()
+    breaches = monitor.detect_policy_breaches(snapshot)
+
+    st.subheader("Guardrail Breaches")
+    if breaches.breaches:
+        st.table(
+            {
+                breach.policy_name: {
+                    "severity": breach.severity,
+                    "deviation": breach.deviation,
+                    "remediation": ", ".join(breach.remediation_steps),
+                }
+                for breach in breaches.breaches
+            }
+        )
+    else:
+        st.success("No guardrail breaches detected")
+
+    st.subheader("Realtime Event Bus Metrics")
+    metrics = resolved_core.get_event_bus_metrics()
+    st.json(
+        {
+            "published": metrics.published,
+            "delivered": metrics.delivered,
+            "avg_latency": metrics.avg_latency,
+            "max_latency": metrics.max_latency,
+            "last_event": metrics.last_event_type,
+        }
+    )
+
+    st.subheader("Reallocation Playground")
+    if st.button("Trigger Reinforcement Optimizer"):
+        rewards: Dict[str, float] = {
+            phase: 1.0 - burn for phase, burn in dashboard.budget_burn_rate.items()
+        }
+        optimisation = resolved_core.execute_fiscal_optimization_cycle(rewards)
+        st.json(optimisation.dict())
+    else:
+        st.info("Use the button to benchmark the reinforcement allocator against live burn rates.")
 
     logger.info("Dashboard rendered")
 

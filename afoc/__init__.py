@@ -33,6 +33,7 @@ if TYPE_CHECKING:  # pragma: no cover - import for static analysis only
         generate_system_overview,
         print_preview_view,
         print_system_overview,
+        export_pdf_summary,
     )
 
 __all__ = [
@@ -64,6 +65,7 @@ __all__ = [
     "generate_system_overview",
     "print_preview_view",
     "print_system_overview",
+    "export_pdf_summary",
 ]
 
 _TOOLS_EXPORTS = {
@@ -74,6 +76,7 @@ _TOOLS_EXPORTS = {
     "generate_system_overview",
     "print_preview_view",
     "print_system_overview",
+    "export_pdf_summary",
 }
 
 

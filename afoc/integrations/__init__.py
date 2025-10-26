@@ -18,6 +18,7 @@ from .llm import (
     LLMUsage,
     LLMUsageCollector,
 )
+from .alerts import AlertDispatcher, AlertResult, EmailNotifier, SlackWebhookNotifier
 
 __all__ = [
     "AVAILABLE_COLLECTORS",
@@ -36,4 +37,8 @@ __all__ = [
     "LLMUsage",
     "LLMUsageCollector",
     "LLMIntegrationError",
+    "AlertDispatcher",
+    "AlertResult",
+    "EmailNotifier",
+    "SlackWebhookNotifier",
 ]

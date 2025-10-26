@@ -292,5 +292,5 @@ class DataFabric:
         if self._redis is not None:
             try:
                 self._redis.close()
-            except Exception:  # pragma: no cover - redis close optional
-                pass
+            except Exception as exc:  # pragma: no cover - redis close optional
+                logger.debug("Failed to close redis connection", error=str(exc))
