@@ -1,0 +1,9 @@
+fastapi>=0.120.0  # Security: ensures dependency tree pulls Starlette 0.40+ with patched CVEs.
+pydantic>=1.10,<3
+SQLAlchemy>=2.0
+strawberry-graphql>=0.230.0
+cryptography>=44.0.1  # Security: patched version resolves GHSA-79v4-65xg-pq4g.
+starlette>=0.47.2  # Security: pins FastAPI dependency to patched CVEs.
+PyJWT>=2.8  # Security: enables signed JWT auth tokens.
+python-dotenv>=1.0  # Security: loads secrets from env files without hardcoding.
+GitPython>=3.1  # Security: replaces shell git calls with safe library access.
