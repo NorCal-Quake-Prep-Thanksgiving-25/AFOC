@@ -13,5 +13,5 @@ def create_app() -> FastAPI:
     app.include_router(anomalies.router, prefix="", tags=["anomalies"])
     app.include_router(rightsizing.router, prefix="/optimize", tags=["optimize"])
     app.include_router(forecasting.router, prefix="/forecast", tags=["forecast"])
-    app.include_router(reports.router, prefix="/reports", tags=["reports"])
+    app.include_router(reports.router, prefix="/report", tags=["report"])
     return app

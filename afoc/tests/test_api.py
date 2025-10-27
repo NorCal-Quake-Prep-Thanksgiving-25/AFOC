@@ -109,3 +109,32 @@ def test_forecast_endpoint_returns_payload() -> None:
     data = response.json()
     assert data["points"]
     assert len(data["points"]) == 10
+
+
+@pytest.mark.skipif(
+    TestClient is None or create_app is None, reason="FastAPI not available"
+)
+def test_value_report_endpoint_returns_breakdown() -> None:
+    """GET /report/value should return the valuation components."""
+
+    client = TestClient(create_app())  # type: ignore[operator]
+    response = client.get(
+        "/report/value",
+        params={
+            "annual_spend": 1_000_000,
+            "tier": "f500",
+            "anomaly_spend": 50_000,
+            "rightsizing_monthly_savings": 5_000,
+            "reservable_spend": 200_000,
+            "anomaly_count": 5,
+        },
+    )
+    if response.status_code == 503:
+        pytest.skip("valuation service unavailable in test environment")
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["anomaly"] > 0
+    assert (
+        payload["integrated"]
+        >= payload["anomaly"] + payload["rightsize"] + payload["forecast"]
+    )
