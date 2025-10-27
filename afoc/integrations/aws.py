@@ -4,11 +4,15 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime, timedelta
-from typing import Dict, Iterable, List, Optional
+from typing import Dict, Iterable, List, Optional, TYPE_CHECKING
 
-import pandas as pd
-
-from typing import TYPE_CHECKING
+if TYPE_CHECKING:  # pragma: no cover - hints only
+    import pandas as pd
+else:  # pragma: no cover - runtime optional dependency
+    try:
+        import pandas as pd
+    except ImportError:  # type: ignore[no-redef]
+        pd = None  # type: ignore[assignment]
 
 try:  # pragma: no cover - optional dependency for production deployments
     import boto3  # type: ignore[import-not-found]
@@ -45,6 +49,13 @@ def _require_client(factory, name: str):
     return boto3.client(name)
 
 
+def _require_pandas() -> None:
+    """Ensure pandas is available before returning analytics frames."""
+
+    if "pd" not in globals() or pd is None:  # type: ignore[name-defined]
+        raise RuntimeError("pandas is required for AWS analytics integrations")
+
+
 def _paginate_cost_and_usage(client, **kwargs) -> Iterable[Dict]:
     """Yield paginated Cost Explorer results with retry-safe token handling."""
 
@@ -72,6 +83,7 @@ class CostAnomalyDetector:
     def get_cost_data(self, days: int = 30) -> pd.DataFrame:
         """Fetch daily costs grouped by service for anomaly detection."""
 
+        _require_pandas()
         end = datetime.utcnow()
         start = end - timedelta(days=days)
         client = self._client_or_default()
@@ -112,6 +124,7 @@ class CostAnomalyDetector:
     ) -> pd.DataFrame:
         """Flag cost spikes using a Z-score heuristic."""
 
+        _require_pandas()
         if df.empty:
             return pd.DataFrame(
                 columns=["date", "service", "cost", "z_score", "expected_range"]
@@ -148,6 +161,7 @@ class CostAnomalyDetector:
     def analyze(self, days: int = 30, threshold: float = 2.0) -> pd.DataFrame:
         """Fetch costs and return detected anomalies in a single call."""
 
+        _require_pandas()
         data = self.get_cost_data(days=days)
         return self.detect_anomalies(data, threshold=threshold)
 
@@ -201,6 +215,7 @@ class EC2RightSizer:
     def analyze_instances(self) -> pd.DataFrame:
         """Inspect running instances and recommend right-sizing actions."""
 
+        _require_pandas()
         response = self._ec2_or_default().describe_instances(
             Filters=[{"Name": "instance-state-name", "Values": ["running"]}]
         )

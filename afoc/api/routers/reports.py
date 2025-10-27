@@ -8,8 +8,9 @@ from fastapi import APIRouter, Depends, Query
 from pydantic import BaseModel
 
 from ...services import aggregator, valuation
+from ..security import enforce_security
 
-router = APIRouter()
+router = APIRouter(dependencies=[Depends(enforce_security)])
 
 
 @router.post("/")

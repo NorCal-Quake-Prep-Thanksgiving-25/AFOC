@@ -4,10 +4,12 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 
-router = APIRouter()
+from ..security import enforce_security
+
+router = APIRouter(dependencies=[Depends(enforce_security)])
 
 
 class ForecastRecord(BaseModel):

@@ -15,6 +15,8 @@ def _configure_sqlite(tmp_path: Path) -> None:
     """Point the API at a temporary SQLite database for isolation."""
 
     settings.database_url = f"sqlite:///{tmp_path / 'api_tests.sqlite'}"
+    settings.api_tokens = ("test-token",)
+    settings.api_rate_limit_per_minute = 500
 
 
 try:  # pragma: no cover - optional dependency guard
@@ -25,10 +27,19 @@ except ImportError:  # pragma: no cover - skip if FastAPI missing
     create_app = None  # type: ignore
 
 
+@pytest.fixture
+def api_client() -> "TestClient":
+    """Return a configured API client with auth headers."""
+
+    client = TestClient(create_app())  # type: ignore[operator]
+    client.headers.update({"X-API-Key": "test-token"})
+    return client
+
+
 @pytest.mark.skipif(
     TestClient is None or create_app is None, reason="FastAPI not available"
 )
-def test_anomaly_endpoint_returns_detection() -> None:
+def test_anomaly_endpoint_returns_detection(api_client: "TestClient") -> None:
     """Posting usage data should return at least one anomaly."""
 
     base = datetime(2024, 1, 1)
@@ -48,8 +59,7 @@ def test_anomaly_endpoint_returns_detection() -> None:
             }
         )
 
-    client = TestClient(create_app())  # type: ignore[operator]
-    response = client.post("/analyze/anomalies", json=payload)
+    response = api_client.post("/analyze/anomalies", json=payload)
     if response.status_code == 503:
         pytest.skip("anomaly service unavailable in test environment")
     assert response.status_code == 200
@@ -61,16 +71,15 @@ def test_anomaly_endpoint_returns_detection() -> None:
 @pytest.mark.skipif(
     TestClient is None or create_app is None, reason="FastAPI not available"
 )
-def test_ingest_upload_accepts_csv() -> None:
+def test_ingest_upload_accepts_csv(api_client: "TestClient") -> None:
     """Uploading a CSV should result in rows being counted."""
 
-    client = TestClient(create_app())  # type: ignore[operator]
     csv_content = (
         "timestamp,project_id,model,cost_usd\n"
         "2024-01-01T00:00:00Z,proj-a,gpt-4,2.5\n"
         "2024-01-02T00:00:00Z,proj-a,gpt-4,3.0\n"
     )
-    response = client.post(
+    response = api_client.post(
         "/ingest/upload",
         params={"kind": "openai"},
         files={"file": ("usage.csv", csv_content, "text/csv")},
@@ -84,10 +93,9 @@ def test_ingest_upload_accepts_csv() -> None:
 @pytest.mark.skipif(
     TestClient is None or create_app is None, reason="FastAPI not available"
 )
-def test_rightsizing_endpoint_returns_recommendations() -> None:
+def test_rightsizing_endpoint_returns_recommendations(api_client: "TestClient") -> None:
     """Posting inventory data should return recommendations."""
 
-    client = TestClient(create_app())  # type: ignore[operator]
     payload = {
         "inventory": [
             {
@@ -111,7 +119,7 @@ def test_rightsizing_endpoint_returns_recommendations() -> None:
         "policy": "cost",
     }
 
-    response = client.post("/optimize/rightsize", json=payload)
+    response = api_client.post("/optimize/rightsize", json=payload)
     if response.status_code == 503:
         pytest.skip("rightsizing service unavailable in test environment")
     assert response.status_code == 200

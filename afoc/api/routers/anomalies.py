@@ -5,13 +5,15 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Iterable, List, TYPE_CHECKING
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
 if TYPE_CHECKING:  # pragma: no cover - only for type checking
     from ...services.anomalies import Anomaly
 
-router = APIRouter()
+from ..security import enforce_security
+
+router = APIRouter(dependencies=[Depends(enforce_security)])
 
 
 class AnomalyRequest(BaseModel):
@@ -64,7 +66,7 @@ def _render_response(items: Iterable["Anomaly"]) -> List[AnomalyResponse]:
 def analyze_anomalies(payload: List[AnomalyRequest]) -> List[AnomalyResponse]:
     """Detect anomalies from the provided payload."""
 
-    records = [record.dict() for record in payload]
+    records = [record.model_dump() for record in payload]
     try:
         from ...services import anomalies as anomaly_service
     except ImportError as exc:  # pragma: no cover - triggered when deps missing

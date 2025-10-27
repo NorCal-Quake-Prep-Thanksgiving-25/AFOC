@@ -2,9 +2,17 @@
 
 from __future__ import annotations
 
-import pandas as pd
+import pytest
+
+try:  # pragma: no cover - skip tests when pandas missing
+    import pandas as pd
+except ImportError:  # pragma: no cover - handled via pytest marker
+    pd = None  # type: ignore[assignment]
 
 from afoc.integrations.aws import CostAnomalyDetector, EC2RightSizer
+
+
+pytestmark = pytest.mark.skipif(pd is None, reason="pandas not available")
 
 
 class _FakeCostExplorer:

@@ -28,6 +28,12 @@ def create_app() -> FastAPI:
         response.headers["X-AFOC-Version"] = app.version
         return response
 
+    @app.get("/health", tags=["meta"], include_in_schema=False)
+    async def healthcheck() -> dict[str, str]:
+        """Expose a lightweight health endpoint for container orchestration."""
+
+        return {"status": "ok"}
+
     app.include_router(ingest.router, prefix="/ingest", tags=["ingest"])
     app.include_router(anomalies.router, prefix="", tags=["anomalies"])
     app.include_router(rightsizing.router, prefix="/optimize", tags=["optimize"])

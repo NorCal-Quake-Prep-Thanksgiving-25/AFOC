@@ -1,0 +1,5 @@
+line_item_usage_start_date,product_product_name,line_item_unblended_cost,line_item_usage_account_id
+2024-04-01T00:00:00Z,AmazonEC2,34.12,123456789012
+2024-04-02T00:00:00Z,AmazonEC2,33.87,123456789012
+2024-04-03T00:00:00Z,AmazonEC2,38.41,123456789012
+2024-04-04T00:00:00Z,AmazonEC2,62.05,123456789012

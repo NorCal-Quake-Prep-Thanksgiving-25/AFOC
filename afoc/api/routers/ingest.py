@@ -8,15 +8,16 @@ import os
 from tempfile import NamedTemporaryFile
 
 import polars as pl
-from fastapi import APIRouter, File, HTTPException, UploadFile, status
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 
 from ...ingest.loaders import (
     load_aws_cur_csv,
     load_generic_usage_csv,
     load_openai_usage_csv,
 )
+from ..security import enforce_security
 
-router = APIRouter()
+router = APIRouter(dependencies=[Depends(enforce_security)])
 
 
 def _generate_sample(days: int = 7) -> list[dict]:
@@ -78,6 +79,11 @@ async def upload_usage(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Unsupported ingestion kind",
             )
+    except ValueError as err:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(err),
+        ) from err
     finally:
         os.unlink(tmp_path)
 

@@ -4,10 +4,12 @@ from __future__ import annotations
 
 from typing import List
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 
-router = APIRouter()
+from ..security import enforce_security
+
+router = APIRouter(dependencies=[Depends(enforce_security)])
 
 
 class RightsizingOptionModel(BaseModel):

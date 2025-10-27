@@ -87,6 +87,25 @@ def _read_csv(path: str | Path) -> pl.DataFrame:
     return pl.read_csv(path, try_parse_dates=True)
 
 
+def _validate_usage_records(frame: pl.DataFrame) -> pl.DataFrame:
+    """Validate canonical usage records before persistence."""
+
+    required_columns = {"occurred_at", "service", "cost_usd"}
+    missing = required_columns.difference(frame.columns)
+    if missing:
+        raise ValueError(f"Missing required columns: {', '.join(sorted(missing))}")
+    if frame.filter(pl.col("occurred_at").is_null()).height:
+        raise ValueError("Usage events require an occurred_at timestamp")
+    if frame.filter(
+        pl.col("service").is_null()
+        | (pl.col("service").cast(pl.Utf8).str.strip_chars().eq(""))
+    ).height:
+        raise ValueError("Usage events require a service identifier")
+    if frame.filter(pl.col("cost_usd").is_null() | (pl.col("cost_usd") < 0)).height:
+        raise ValueError("Usage cost values must be non-negative")
+    return frame
+
+
 def load_openai_usage_csv(
     path: str | Path, session: Session | None = None
 ) -> pl.DataFrame:
@@ -116,7 +135,7 @@ def load_openai_usage_csv(
         )
         .sort("occurred_at")
     )
-    return _persist_usage_events(structured, session=session)
+    return _persist_usage_events(_validate_usage_records(structured), session=session)
 
 
 def load_aws_cur_csv(path: str | Path, session: Session | None = None) -> pl.DataFrame:
@@ -152,7 +171,7 @@ def load_aws_cur_csv(path: str | Path, session: Session | None = None) -> pl.Dat
         )
         .sort("occurred_at")
     )
-    return _persist_usage_events(structured, session=session)
+    return _persist_usage_events(_validate_usage_records(structured), session=session)
 
 
 def load_generic_usage_csv(
@@ -217,4 +236,4 @@ def load_generic_usage_csv(
         )
         .sort("occurred_at")
     )
-    return _persist_usage_events(structured, session=session)
+    return _persist_usage_events(_validate_usage_records(structured), session=session)
