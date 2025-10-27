@@ -18,6 +18,8 @@ This repository contains a minimal bootstrap for the Autonomous Fiscal Orchestra
    ruff check .
    black --check .
    mypy afoc
+   python -m bandit -c .bandit -r afoc
+   python -m pip_audit
    pytest
    ```
 4. Launch the API:

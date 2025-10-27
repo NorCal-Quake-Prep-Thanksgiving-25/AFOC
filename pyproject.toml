@@ -36,6 +36,8 @@ dev = [
     "mypy",
     "ruff",
     "pre-commit",
+    "bandit",
+    "pip-audit",
 ]
 aws = [
     "boto3",
