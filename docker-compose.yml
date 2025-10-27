@@ -1,0 +1,19 @@
+version: "3.9"
+services:
+  db:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: afoc
+      POSTGRES_PASSWORD: afoc
+      POSTGRES_DB: afoc
+    ports:
+      - "5432:5432"
+  api:
+    build: .
+    command: uvicorn afoc.api.app:create_app --host 0.0.0.0 --port 8000 --factory
+    environment:
+      DATABASE_URL: postgres://afoc:afoc@db:5432/afoc
+    depends_on:
+      - db
+    ports:
+      - "8000:8000"
