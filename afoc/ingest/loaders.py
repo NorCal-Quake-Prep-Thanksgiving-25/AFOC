@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from decimal import Decimal
 from pathlib import Path
-from typing import Mapping, Sequence
+from typing import Mapping, Sequence, cast
 
 import polars as pl
 from sqlalchemy import create_engine
@@ -163,9 +163,9 @@ def load_generic_usage_csv(
     """Ingest a custom CSV using an explicit column mapping."""
 
     raw = _read_csv(path)
-    timestamp_key = mapping["timestamp"]  # type: ignore[index]
-    service_key = mapping["service"]  # type: ignore[index]
-    cost_key = mapping["cost"]  # type: ignore[index]
+    timestamp_key = cast(str, mapping["timestamp"])  # type: ignore[index]
+    service_key = cast(str, mapping["service"])  # type: ignore[index]
+    cost_key = cast(str, mapping["cost"])  # type: ignore[index]
 
     def _resolve(
         value: str | Sequence[str] | None, default: str | None = None
@@ -173,16 +173,20 @@ def load_generic_usage_csv(
         if value is None:
             return pl.lit(default or "")
         if isinstance(value, str):
-            if value in raw.columns:
-                return pl.col(value)
-            return pl.lit(value)
+            column_name: str = cast(str, value)
+            if column_name in raw.columns:
+                return pl.col(column_name)  # type: ignore[arg-type]
+            return pl.lit(column_name)
         # Sequence of strings representing a struct payload
-        existing = [col for col in value if col in raw.columns]
-        return pl.struct(existing)
+        sequence_value: Sequence[str] = cast(Sequence[str], value)
+        existing = [col for col in sequence_value if col in raw.columns]
+        return pl.struct(existing)  # type: ignore[arg-type]
 
-    provider_expr = _resolve(mapping.get("provider"), default="custom")
-    account_expr = _resolve(mapping.get("account"))
-    metadata_value = mapping.get("metadata")
+    provider_value: str | Sequence[str] | None = mapping.get("provider")
+    account_value: str | Sequence[str] | None = mapping.get("account")
+    metadata_value: str | Sequence[str] | None = mapping.get("metadata")
+    provider_expr = _resolve(provider_value, default="custom")
+    account_expr = _resolve(account_value)
     if metadata_value is None:
         metadata_cols = [
             column

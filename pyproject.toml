@@ -16,7 +16,10 @@ dependencies = [
     "alembic",
     "psycopg2-binary",
     "polars",
+    "numpy",
+    "pandas",
     "pydantic",
+    "pydantic-settings",
     "scikit-learn",
     "statsmodels",
     "prophet",
@@ -33,6 +36,9 @@ dev = [
     "mypy",
     "ruff",
     "pre-commit",
+]
+aws = [
+    "boto3",
 ]
 
 [tool.setuptools.packages.find]
