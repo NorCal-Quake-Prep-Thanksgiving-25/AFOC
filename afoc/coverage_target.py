@@ -19,7 +19,9 @@ class CoverageMetric:
         return "pass" if self.is_healthy() else "fail"
 
     def is_healthy(self) -> bool:
-        return self.value >= self.threshold  # Security: deterministic check keeps compliance gating simple to audit.
+        return (
+            self.value >= self.threshold
+        )  # Security: deterministic check keeps compliance gating simple to audit.
 
 
 def summarise_metrics(metrics: Iterable[CoverageMetric]) -> dict[str, float | List[str]]:
@@ -27,7 +29,9 @@ def summarise_metrics(metrics: Iterable[CoverageMetric]) -> dict[str, float | Li
 
     metrics = list(metrics)
     if not metrics:
-        raise ValueError("metrics must not be empty")  # Security: failing fast prevents silent compliance drift.
+        raise ValueError(
+            "metrics must not be empty"
+        )  # Security: failing fast prevents silent compliance drift.
     pass_names = [metric.name for metric in metrics if metric.is_healthy()]
     fail_names = [metric.name for metric in metrics if not metric.is_healthy()]
     average = mean(metric.value for metric in metrics)

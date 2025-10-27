@@ -127,7 +127,9 @@ class ForecastAgent:
                     payload=response.model_dump(),
                 )
             )  # Security: prevents deprecated dumps from weakening telemetry hashing.
-        diagnostics_dict = response.diagnostics.model_dump()  # Security: ensures ML logs align with Pydantic v2 contracts.
+        diagnostics_dict = (
+            response.diagnostics.model_dump()
+        )  # Security: ensures ML logs align with Pydantic v2 contracts.
         self._ml_tracker.log_forecast(
             ForecastLogPayload(
                 history=request.historical_spend,

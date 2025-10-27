@@ -31,13 +31,17 @@ def build_graphql_router(core: ComposableIntelligenceCore | None = None) -> Any:
         async def forecast(self, history: list[float]) -> Dict[str, float]:
             request = resolved_core.forecast_agent_request_model(historical_spend=history)
             response = await resolved_core.forecast_agent.forecast(request)
-            return response.model_dump()  # Security: ensures GraphQL output matches API serialization guarantees.
+            return (
+                response.model_dump()
+            )  # Security: ensures GraphQL output matches API serialization guarantees.
 
         @strawberry.field
         async def allocate(self, total: float, targets: Dict[str, float]) -> Dict[str, float]:
             request = resolved_core.budget_agent_request_model(total_budget=total, targets=targets)
             response = await resolved_core.budget_agent.allocate(request)
-            return response.model_dump()  # Security: prevents deprecated dumps from weakening schema validation.
+            return (
+                response.model_dump()
+            )  # Security: prevents deprecated dumps from weakening schema validation.
 
     schema = strawberry.Schema(query=Query)
     return GraphQLRouter(schema)

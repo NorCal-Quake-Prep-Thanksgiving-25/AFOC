@@ -46,7 +46,9 @@ async def _run_forecast(core: ComposableIntelligenceCore, args: argparse.Namespa
 async def _run_optimize(core: ComposableIntelligenceCore, args: argparse.Namespace) -> None:
     request = OptimizationRequest(reward_history=[float(v) for v in args.rewards])
     response = await core.roi_engine.optimize(request)
-    payload = response.model_dump()  # Security: modern dump keeps CLI output aligned with signed API payloads.
+    payload: Dict[str, object] = (
+        response.model_dump()
+    )  # Security: typed payload keeps CLI output aligned with signed API payloads for forensics.
     if args.quantum_only and payload.get("quantum_summary"):
         print(json.dumps(payload["quantum_summary"], indent=2))
     else:

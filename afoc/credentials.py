@@ -16,7 +16,9 @@ except Exception:  # pragma: no cover - gracefully degrade when python-dotenv ab
     load_dotenv = None
 
 
-logger = logging.getLogger(__name__)  # Security: shared logger surfaces credential errors without exposing secrets.
+logger = logging.getLogger(
+    __name__
+)  # Security: shared logger surfaces credential errors without exposing secrets.
 
 
 class CredentialProvider(Protocol):
@@ -94,7 +96,9 @@ class KMSCipherCredentialProvider:
             decoded = base64.b64decode(ciphertext)
         except Exception as exc:
             logger.warning("Failed to base64 decode ciphertext", extra={"error": str(exc)})
-            decoded = None  # Security: logged failure ensures forensic trail without leaking ciphertext.
+            decoded = (
+                None  # Security: logged failure ensures forensic trail without leaking ciphertext.
+            )
         if self._gcp_client and self._gcp_key_name and decoded is not None:
             try:  # pragma: no cover - optional dependency
                 response = self._gcp_client.decrypt(

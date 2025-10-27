@@ -26,7 +26,9 @@ LOGGER = logging.getLogger(__name__)
 T = TypeVar("T")
 
 _SYSTEM_RANDOM = SystemRandom()  # Security: shared SystemRandom avoids predictable jitter.
-_BQ_TABLE_PATTERN = re.compile(r"^[A-Za-z0-9_\-.]+$")  # Security: whitelist ensures billing tables can't inject SQL tokens.
+_BQ_TABLE_PATTERN = re.compile(
+    r"^[A-Za-z0-9_\-.]+$"
+)  # Security: whitelist ensures billing tables can't inject SQL tokens.
 
 
 class IntegrationError(RuntimeError):
@@ -61,7 +63,9 @@ class CloudSpendSample(BaseModel):
 
 
 class CostCollector(BaseModel):
-    provider: ClassVar[str] = "generic"  # Security: ClassVar allows safe subclass overrides without runtime field injection.
+    provider: ClassVar[str] = (
+        "generic"  # Security: ClassVar allows safe subclass overrides without runtime field injection.
+    )
     credentials_ref: str | None = None
     max_attempts: int = Field(default=4, ge=1)
     initial_backoff: float = Field(default=0.5, ge=0.0)
@@ -73,6 +77,7 @@ class CostCollector(BaseModel):
             arbitrary_types_allowed=True
         )  # Security: ConfigDict avoids deprecated config paths and locks strict validation.
     else:  # pragma: no cover - executed on pydantic<2
+
         class Config:
             arbitrary_types_allowed = True
 
@@ -213,7 +218,9 @@ class CostCollector(BaseModel):
 
 
 class AWSCostCollector(CostCollector):
-    provider: ClassVar[str] = "aws"  # Security: explicit ClassVar keeps provider immutable per tenant integration.
+    provider: ClassVar[str] = (
+        "aws"  # Security: explicit ClassVar keeps provider immutable per tenant integration.
+    )
     region: str = Field(default="us-east-1")
 
     def _collect(
@@ -262,7 +269,9 @@ class AWSCostCollector(CostCollector):
 
 
 class AzureCostCollector(CostCollector):
-    provider: ClassVar[str] = "azure"  # Security: ensures Azure collector identity remains immutable per tenant.
+    provider: ClassVar[str] = (
+        "azure"  # Security: ensures Azure collector identity remains immutable per tenant.
+    )
     scope: str = Field(
         default_factory=lambda: os.getenv(
             "AZURE_COST_SCOPE", "00000000-0000-0000-0000-000000000000"
@@ -319,7 +328,9 @@ class AzureCostCollector(CostCollector):
 
 
 class GCPCostCollector(CostCollector):
-    provider: ClassVar[str] = "gcp"  # Security: immutable provider guard supports deterministic spend attribution.
+    provider: ClassVar[str] = (
+        "gcp"  # Security: immutable provider guard supports deterministic spend attribution.
+    )
     billing_account: str = Field(
         default_factory=lambda: os.getenv("GCP_BILLING_ACCOUNT", "000000-000000-000000")
     )
@@ -346,7 +357,9 @@ class GCPCostCollector(CostCollector):
         job_id = f"afoc_cost_{window_hash}"
         if not _BQ_TABLE_PATTERN.fullmatch(table):
             raise IntegrationError("Unsafe billing table identifier")
-        from_clause = "".join(["FROM `", table, "`"])  # Security: join avoids SQL injection by reusing sanitized table.
+        from_clause = "".join(
+            ["FROM `", table, "`"]
+        )  # Security: join avoids SQL injection by reusing sanitized table.
         query_lines = [
             "SELECT",
             "  service.description AS service_name,",

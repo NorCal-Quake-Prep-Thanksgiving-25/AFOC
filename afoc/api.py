@@ -108,7 +108,9 @@ def build_api(core: ComposableIntelligenceCore | None = None) -> Any:
         result = await resolved_core.budget_agent.allocate(request)
         # Security: allocation requests logged for fiscal traceability.
         audit_logger.log(actor=principal.username, action="allocate", status="success")
-        return result.model_dump()  # Security: model_dump avoids deprecated serialization and ensures consistent payload signing.
+        return (
+            result.model_dump()
+        )  # Security: model_dump avoids deprecated serialization and ensures consistent payload signing.
 
     @app.post("/forecast")
     async def forecast(
@@ -122,7 +124,9 @@ def build_api(core: ComposableIntelligenceCore | None = None) -> Any:
         result = await resolved_core.forecast_agent.forecast(request)
         # Security: forecast runs are captured to correlate with downstream spend decisions.
         audit_logger.log(actor=principal.username, action="forecast", status="success")
-        return result.model_dump()  # Security: modern serializer prevents silent field drops during forecast exposure.
+        return (
+            result.model_dump()
+        )  # Security: modern serializer prevents silent field drops during forecast exposure.
 
     @app.post("/optimize")
     async def optimize(
@@ -132,7 +136,9 @@ def build_api(core: ComposableIntelligenceCore | None = None) -> Any:
         result = await resolved_core.roi_engine.optimize(request)
         # Security: optimisation changes recorded to explain budget shifts.
         audit_logger.log(actor=principal.username, action="optimize", status="success")
-        return result.model_dump()  # Security: RBAC responses stay canonical for audit replay without deprecation paths.
+        return (
+            result.model_dump()
+        )  # Security: RBAC responses stay canonical for audit replay without deprecation paths.
 
     @app.post("/optimize/quantum")
     async def optimize_quantum(
@@ -150,7 +156,9 @@ def build_api(core: ComposableIntelligenceCore | None = None) -> Any:
             return JSONResponse(
                 status_code=503, content={"detail": "Quantum optimiser unavailable"}
             )
-        payload: Dict[str, Any] = result.model_dump()  # Security: ensures quantum diagnostics retain integrity with v2-safe dumps.
+        payload: Dict[str, Any] = (
+            result.model_dump()
+        )  # Security: ensures quantum diagnostics retain integrity with v2-safe dumps.
         # Security: quantum runs logged to ensure high-privilege operations remain auditable.
         audit_logger.log(actor=principal.username, action="optimize_quantum", status="success")
         return {
@@ -165,7 +173,9 @@ def build_api(core: ComposableIntelligenceCore | None = None) -> Any:
         alert = await resolved_core.security_guardian.audit()
         # Security: audit trail includes who requested guardian checks.
         audit_logger.log(actor=principal.username, action="audit", status="success")
-        payload = alert.model_dump()  # Security: structured dump protects audit payloads from version drift in Pydantic.
+        payload: Dict[str, Any] = (
+            alert.model_dump()
+        )  # Security: structured, typed dump protects audit payloads from version drift in Pydantic.
         payload["status"] = (
             alert.severity
         )  # Security: explicit status field aids downstream policy enforcement.

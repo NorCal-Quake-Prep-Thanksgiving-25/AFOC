@@ -396,7 +396,9 @@ class DataFabric:
                 {"workload": workload, "amount": amount},
             )
             cached += 1
-            ingested += 1  # Security: treat cached fallback as processed to avoid losing spend telemetry.
+            ingested += (
+                1  # Security: treat cached fallback as processed to avoid losing spend telemetry.
+            )
         completed = datetime.now(timezone.utc)
         return IngestionReport(
             ingested=ingested,
