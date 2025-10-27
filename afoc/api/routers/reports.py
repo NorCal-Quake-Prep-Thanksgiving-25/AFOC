@@ -8,6 +8,7 @@ from fastapi import APIRouter, Depends, Query
 from pydantic import BaseModel
 
 from ...services import aggregator, valuation
+from ...telemetry import TelemetryStore
 from ..security import enforce_security
 
 router = APIRouter(dependencies=[Depends(enforce_security)])
@@ -46,4 +47,24 @@ def value_report(params: ValueQuery = Depends()) -> Dict[str, object]:
         anomaly_count=params.anomaly_count,
     )
     report = valuation.compute_value_report(inputs)
+    store = TelemetryStore.default()
+    store.record_event(
+        "valuation",
+        scope=params.tier,
+        before_value=0.0,
+        after_value=report.integrated,
+        metadata={
+            "anomaly": report.anomaly,
+            "rightsize": report.rightsize,
+            "forecast": report.forecast,
+            "integrated_value": report.integrated,
+        },
+    )
     return report.to_dict()
+
+
+@router.get("/proof")
+def proof(window_days: int = Query(90, ge=7, le=365)) -> Dict[str, object]:
+    """Return an ROI proof payload summarising before/after outcomes."""
+
+    return aggregator.proof(window_days)

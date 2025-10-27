@@ -7,6 +7,7 @@ from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 
+from ...telemetry import TelemetryStore
 from ..security import enforce_security
 
 router = APIRouter(dependencies=[Depends(enforce_security)])
@@ -54,5 +55,19 @@ def forecast(
         horizon=h,
         method=method,
         seasonal_periods=seasonal_periods,
+    )
+    store = TelemetryStore.default()
+    baseline = records[-1]["cost_usd"] if records else None
+    first_point = result.points[0] if result.points else None
+    store.record_event(
+        "forecast",
+        scope=scope,
+        before_value=float(baseline) if baseline is not None else None,
+        after_value=float(first_point.yhat) if first_point else None,
+        metadata={
+            "method": result.method,
+            "horizon": result.horizon,
+            "mape": result.mape,
+        },
     )
     return result.to_dict()

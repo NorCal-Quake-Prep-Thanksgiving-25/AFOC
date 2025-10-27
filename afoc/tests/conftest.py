@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 import sys
 from pathlib import Path
 
@@ -44,3 +45,10 @@ def session() -> Session:
     finally:
         db_session.close()
         Base.metadata.drop_all(engine)
+
+
+@pytest.fixture(autouse=True)
+def _telemetry_store(tmp_path: Path) -> None:
+    """Point telemetry writes at an isolated SQLite database."""
+
+    os.environ["AFOC_TELEMETRY_URL"] = f"sqlite:///{tmp_path / 'telemetry.sqlite'}"

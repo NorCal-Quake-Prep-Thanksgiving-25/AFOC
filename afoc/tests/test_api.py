@@ -180,3 +180,16 @@ def test_value_report_endpoint_returns_breakdown() -> None:
         payload["integrated"]
         >= payload["anomaly"] + payload["rightsize"] + payload["forecast"]
     )
+
+
+@pytest.mark.skipif(
+    TestClient is None or create_app is None, reason="FastAPI not available"
+)
+def test_proof_endpoint_returns_payload(api_client: "TestClient") -> None:
+    """Proof endpoint should surface telemetry summary even when empty."""
+
+    response = api_client.get("/report/proof", params={"window_days": 30})
+    assert response.status_code == 200
+    payload = response.json()
+    assert "annualised_value" in payload
+    assert payload["window_days"] == 30

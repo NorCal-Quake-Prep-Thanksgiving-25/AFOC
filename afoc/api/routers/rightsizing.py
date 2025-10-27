@@ -7,6 +7,7 @@ from typing import List
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 
+from ...telemetry import TelemetryStore
 from ..security import enforce_security
 
 router = APIRouter(dependencies=[Depends(enforce_security)])
@@ -77,9 +78,23 @@ def recommend(payload: RightsizingRequest) -> List[dict]:
         record["metadata"] = metadata
         inventory_records.append(record)
     utilization_records = [item.model_dump() for item in payload.utilization]
-    return service.generate_recommendations(
+    recommendations = service.generate_recommendations(
         inventory_records,
         utilization_records,
         headroom=payload.headroom,
         policy=payload.policy,
     )
+    store = TelemetryStore.default()
+    for rec in recommendations:
+        before = float(rec.get("current_price", 0.0))
+        after = float(rec.get("recommended_price", before))
+        savings = max(before - after, 0.0)
+        ratio = (savings / before) if before else 0.0
+        store.record_event(
+            "rightsizing",
+            scope=str(rec.get("resource_id")),
+            before_value=before,
+            after_value=after,
+            metadata={**rec, "savings_ratio": ratio},
+        )
+    return recommendations

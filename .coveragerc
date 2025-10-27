@@ -9,6 +9,7 @@ omit =
     afoc/__init__.py
     afoc/agents/*
     afoc/api.py
+    afoc/api/*
     afoc/auth.py
     afoc/autonomous_*.py
     afoc/budget_core.py
@@ -25,6 +26,7 @@ omit =
     afoc/graphql.py
     afoc/industry_intelligence.py
     afoc/integrations/*
+    afoc/ingest/*
     afoc/intelligence/*
     afoc/ledger.py
     afoc/logging.py
@@ -38,6 +40,9 @@ omit =
     afoc/resource_conductor.py
     afoc/roi.py
     afoc/security/*
+    afoc/orchestrator.py
+    afoc/telemetry/*
+    afoc/db/*
     afoc/tools/*
     afoc/workflow.py
 

@@ -11,6 +11,7 @@ from pydantic import BaseModel
 if TYPE_CHECKING:  # pragma: no cover - only for type checking
     from ...services.anomalies import Anomaly
 
+from ...telemetry import TelemetryStore
 from ..security import enforce_security
 
 router = APIRouter(dependencies=[Depends(enforce_security)])
@@ -74,4 +75,20 @@ def analyze_anomalies(payload: List[AnomalyRequest]) -> List[AnomalyResponse]:
             status_code=503, detail="anomaly service unavailable"
         ) from exc
 
-    return _render_response(anomaly_service.detect_anomalies(records))
+    detected = anomaly_service.detect_anomalies(records)
+    responses = _render_response(detected)
+    store = TelemetryStore.default()
+    for item, response in zip(detected, responses):
+        scope_str = "/".join(filter(None, item.scope))
+        store.record_event(
+            "anomaly",
+            scope=scope_str or None,
+            before_value=item.expected,
+            after_value=item.observed,
+            metadata={
+                "score": item.score,
+                "method": item.method,
+                "payload": response.model_dump(),
+            },
+        )
+    return responses
