@@ -10,7 +10,6 @@ from sqlalchemy import (
     JSON,
     Boolean,
     Column,
-    Date,
     DateTime,
     Float,
     ForeignKey,
@@ -19,9 +18,13 @@ from sqlalchemy import (
     String,
     Text,
 )
-from sqlalchemy.orm import declarative_base, relationship
+from sqlalchemy.orm import DeclarativeBase, relationship
 
-Base = declarative_base()
+
+class Base(DeclarativeBase):
+    """Base class for declarative models."""
+
+    pass
 
 
 class UsageEvent(Base):

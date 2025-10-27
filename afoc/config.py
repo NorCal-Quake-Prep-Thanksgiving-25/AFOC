@@ -3,8 +3,8 @@
 from functools import lru_cache
 from pathlib import Path
 
-from dotenv import load_dotenv
-from pydantic import BaseSettings, Field, PostgresDsn
+from dotenv import load_dotenv  # type: ignore[import-not-found]
+from pydantic import BaseSettings, Field, PostgresDsn  # type: ignore[import-not-found]
 
 # Load environment variables from a `.env` file if present so the application
 # works out of the box during local development.

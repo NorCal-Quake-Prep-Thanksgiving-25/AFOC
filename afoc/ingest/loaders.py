@@ -49,7 +49,9 @@ def _finalise_session(handle: _SessionHandle, exc: Exception | None) -> None:
             session.close()
 
 
-def _persist_usage_events(records: pl.DataFrame, session: Session | None = None) -> pl.DataFrame:
+def _persist_usage_events(
+    records: pl.DataFrame, session: Session | None = None
+) -> pl.DataFrame:
     """Insert the provided usage events into the database."""
 
     handle = _ensure_session(session)
@@ -85,26 +87,33 @@ def _read_csv(path: str | Path) -> pl.DataFrame:
     return pl.read_csv(path, try_parse_dates=True)
 
 
-def load_openai_usage_csv(path: str | Path, session: Session | None = None) -> pl.DataFrame:
+def load_openai_usage_csv(
+    path: str | Path, session: Session | None = None
+) -> pl.DataFrame:
     """Ingest an OpenAI usage export into canonical usage events."""
 
     raw = _read_csv(path)
     metadata_cols = [
         column
         for column in raw.columns
-        if column
-        not in {"timestamp", "project_id", "model", "cost_usd"}
+        if column not in {"timestamp", "project_id", "model", "cost_usd"}
     ]
     structured = (
         raw.with_columns(
-            pl.col("timestamp").str.strptime(pl.Datetime, strict=False).alias("occurred_at"),
+            pl.col("timestamp")
+            .str.strptime(pl.Datetime, strict=False)
+            .alias("occurred_at"),
             pl.lit("openai").alias("provider"),
             pl.col("project_id").fill_null("default").alias("account"),
             pl.col("model").alias("service"),
             pl.col("cost_usd").cast(pl.Float64).alias("cost_usd"),
-            (pl.struct(metadata_cols) if metadata_cols else pl.lit({})).alias("metadata"),
+            (pl.struct(metadata_cols) if metadata_cols else pl.lit({})).alias(
+                "metadata"
+            ),
         )
-        .select(["occurred_at", "provider", "account", "service", "cost_usd", "metadata"])
+        .select(
+            ["occurred_at", "provider", "account", "service", "cost_usd", "metadata"]
+        )
         .sort("occurred_at")
     )
     return _persist_usage_events(structured, session=session)
@@ -134,9 +143,13 @@ def load_aws_cur_csv(path: str | Path, session: Session | None = None) -> pl.Dat
             pl.col("line_item_usage_account_id").fill_null("unknown").alias("account"),
             pl.col("product_product_name").alias("service"),
             pl.col("line_item_unblended_cost").cast(pl.Float64).alias("cost_usd"),
-            (pl.struct(metadata_cols) if metadata_cols else pl.lit({})).alias("metadata"),
+            (pl.struct(metadata_cols) if metadata_cols else pl.lit({})).alias(
+                "metadata"
+            ),
         )
-        .select(["occurred_at", "provider", "account", "service", "cost_usd", "metadata"])
+        .select(
+            ["occurred_at", "provider", "account", "service", "cost_usd", "metadata"]
+        )
         .sort("occurred_at")
     )
     return _persist_usage_events(structured, session=session)
@@ -154,7 +167,9 @@ def load_generic_usage_csv(
     service_key = mapping["service"]  # type: ignore[index]
     cost_key = mapping["cost"]  # type: ignore[index]
 
-    def _resolve(value: str | Sequence[str] | None, default: str | None = None) -> pl.Expr:
+    def _resolve(
+        value: str | Sequence[str] | None, default: str | None = None
+    ) -> pl.Expr:
         if value is None:
             return pl.lit(default or "")
         if isinstance(value, str):
@@ -172,8 +187,7 @@ def load_generic_usage_csv(
         metadata_cols = [
             column
             for column in raw.columns
-            if column
-            not in {timestamp_key, service_key, cost_key}
+            if column not in {timestamp_key, service_key, cost_key}
             and column != mapping.get("provider")
             and column != mapping.get("account")
         ]
@@ -185,14 +199,18 @@ def load_generic_usage_csv(
 
     structured = (
         raw.with_columns(
-            pl.col(timestamp_key).str.strptime(pl.Datetime, strict=False).alias("occurred_at"),
+            pl.col(timestamp_key)
+            .str.strptime(pl.Datetime, strict=False)
+            .alias("occurred_at"),
             provider_expr.alias("provider"),
             account_expr.alias("account"),
             pl.col(service_key).alias("service"),
             pl.col(cost_key).cast(pl.Float64).alias("cost_usd"),
             metadata_expr.alias("metadata"),
         )
-        .select(["occurred_at", "provider", "account", "service", "cost_usd", "metadata"])
+        .select(
+            ["occurred_at", "provider", "account", "service", "cost_usd", "metadata"]
+        )
         .sort("occurred_at")
     )
     return _persist_usage_events(structured, session=session)

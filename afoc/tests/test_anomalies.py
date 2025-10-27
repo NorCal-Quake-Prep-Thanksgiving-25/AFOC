@@ -48,7 +48,9 @@ def test_detect_anomalies_precision_recall() -> None:
     detected = anomaly_service.detect_anomalies(records)
 
     predicted_indices = {
-        (anom.ts - datetime(2024, 1, 1)).days for anom in detected if anom.scope[2] == "compute"
+        (anom.ts - datetime(2024, 1, 1)).days
+        for anom in detected
+        if anom.scope[2] == "compute"
     }
     true_positives = predicted_indices & expected_indices
     precision = len(true_positives) / max(len(predicted_indices), 1)

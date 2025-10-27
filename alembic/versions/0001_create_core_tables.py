@@ -34,8 +34,18 @@ def upgrade() -> None:
     op.create_table(
         "utilization",
         sa.Column("id", sa.Integer(), primary_key=True),
-        sa.Column("resource_id", sa.Integer(), sa.ForeignKey("resource_inventory.id"), nullable=False),
-        sa.Column("usage_event_id", sa.Integer(), sa.ForeignKey("usage_events.id"), nullable=True),
+        sa.Column(
+            "resource_id",
+            sa.Integer(),
+            sa.ForeignKey("resource_inventory.id"),
+            nullable=False,
+        ),
+        sa.Column(
+            "usage_event_id",
+            sa.Integer(),
+            sa.ForeignKey("usage_events.id"),
+            nullable=True,
+        ),
         sa.Column("observed_at", sa.DateTime(), nullable=False),
         sa.Column("cpu_percent", sa.Float(), nullable=True),
         sa.Column("memory_percent", sa.Float(), nullable=True),
@@ -45,7 +55,12 @@ def upgrade() -> None:
         "anomalies",
         sa.Column("id", sa.Integer(), primary_key=True),
         sa.Column("detected_at", sa.DateTime(), nullable=False),
-        sa.Column("resource_id", sa.Integer(), sa.ForeignKey("resource_inventory.id"), nullable=True),
+        sa.Column(
+            "resource_id",
+            sa.Integer(),
+            sa.ForeignKey("resource_inventory.id"),
+            nullable=True,
+        ),
         sa.Column("severity", sa.String(length=16), nullable=False),
         sa.Column("description", sa.Text(), nullable=False),
         sa.Column("z_score", sa.Float(), nullable=True),
@@ -53,7 +68,12 @@ def upgrade() -> None:
     op.create_table(
         "rightsizing_recs",
         sa.Column("id", sa.Integer(), primary_key=True),
-        sa.Column("resource_id", sa.Integer(), sa.ForeignKey("resource_inventory.id"), nullable=False),
+        sa.Column(
+            "resource_id",
+            sa.Integer(),
+            sa.ForeignKey("resource_inventory.id"),
+            nullable=False,
+        ),
         sa.Column("recommendation", sa.String(length=32), nullable=False),
         sa.Column("estimated_savings", sa.Float(), nullable=False, server_default="0"),
         sa.Column("created_at", sa.DateTime(), nullable=False),

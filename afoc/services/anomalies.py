@@ -75,7 +75,9 @@ def detect_anomalies(records: Iterable[dict]) -> List[Anomaly]:
         group["rolling_std"] = (
             group["cost_usd"].rolling(window=30, min_periods=7).std().fillna(0.0)
         )
-        group["expected"] = group["rolling_mean"].fillna(group["cost_usd"].expanding().mean())
+        group["expected"] = group["rolling_mean"].fillna(
+            group["cost_usd"].expanding().mean()
+        )
         group["residual"] = group["cost_usd"] - group["expected"]
 
         valid = group.dropna(subset=["expected"])
@@ -86,7 +88,9 @@ def detect_anomalies(records: Iterable[dict]) -> List[Anomaly]:
             predictions = _apply_isolation_forest(valid[["residual", "cost_usd"]])
             scores = np.abs(valid["residual"]) / (valid["rolling_std"] + 1e-6)
             method = "isolation_forest"
-            flags = (predictions == -1) & (valid["residual"] > valid["rolling_std"] * 1.5)
+            flags = (predictions == -1) & (
+                valid["residual"] > valid["rolling_std"] * 1.5
+            )
         else:
             scores = np.abs(_robust_z_scores(valid["residual"]))
             method = "robust_z"

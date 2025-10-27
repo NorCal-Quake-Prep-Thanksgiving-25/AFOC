@@ -38,3 +38,6 @@ dev = [
 [tool.setuptools.packages.find]
 where = ["."]
 include = ["afoc*"]
+
+[tool.mypy]
+ignore_missing_imports = true

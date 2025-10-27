@@ -10,5 +10,4 @@ class DataPayload(Dict[str, Any]):
 class Processor(Protocol):
     """Protocol describing a callable processor."""
 
-    def __call__(self, payload: DataPayload) -> DataPayload:
-        ...
+    def __call__(self, payload: DataPayload) -> DataPayload: ...

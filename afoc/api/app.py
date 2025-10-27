@@ -11,7 +11,7 @@ def create_app() -> FastAPI:
     app = FastAPI(title="AFOC API")
     app.include_router(ingest.router, prefix="/ingest", tags=["ingest"])
     app.include_router(anomalies.router, prefix="", tags=["anomalies"])
-    app.include_router(rightsizing.router, prefix="/rightsizing", tags=["rightsizing"])
-    app.include_router(forecasting.router, prefix="/forecasting", tags=["forecasting"])
+    app.include_router(rightsizing.router, prefix="/optimize", tags=["optimize"])
+    app.include_router(forecasting.router, prefix="/forecast", tags=["forecast"])
     app.include_router(reports.router, prefix="/reports", tags=["reports"])
     return app

@@ -68,6 +68,8 @@ def analyze_anomalies(payload: List[AnomalyRequest]) -> List[AnomalyResponse]:
     try:
         from ...services import anomalies as anomaly_service
     except ImportError as exc:  # pragma: no cover - triggered when deps missing
-        raise HTTPException(status_code=503, detail="anomaly service unavailable") from exc
+        raise HTTPException(
+            status_code=503, detail="anomaly service unavailable"
+        ) from exc
 
     return _render_response(anomaly_service.detect_anomalies(records))
