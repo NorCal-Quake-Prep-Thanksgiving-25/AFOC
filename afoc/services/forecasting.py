@@ -79,8 +79,7 @@ def _prepare_series(
         return grouped
     full_index = pd.date_range(grouped.index.min(), grouped.index.max(), freq="D")
     grouped = grouped.reindex(full_index)
-    grouped.fillna(method="ffill", inplace=True)
-    grouped.fillna(method="bfill", inplace=True)
+    grouped = grouped.ffill().bfill()
     return grouped.astype(float)
 
 
@@ -100,6 +99,24 @@ def _compute_mape(actual: pd.Series, predicted: pd.Series) -> float:
     return float(
         np.mean(np.abs((actual.to_numpy() - predicted.to_numpy()) / denom)) * 100.0
     )
+
+
+def _detect_seasonality(series: pd.Series, default: int, horizon: int) -> int:
+    """Select a seasonal period that minimises back-test error."""
+
+    best_period = default
+    best_score = float("inf")
+    candidates = sorted({default, 7, 14, 30})
+    for period in candidates:
+        if len(series) <= period * 2:
+            continue
+        score = _backtest(series, horizon, period, "ets")
+        if score is None:
+            continue
+        if score < best_score:
+            best_score = score
+            best_period = period
+    return best_period
 
 
 def _backtest(
@@ -169,6 +186,9 @@ def generate_forecast(
         )
     elif method == "ets":
         chosen_method = "ets"
+
+    if chosen_method == "ets":
+        seasonal_periods = _detect_seasonality(series, seasonal_periods, horizon)
 
     try:
         forecast_values = _run_model(series, horizon, seasonal_periods, chosen_method)

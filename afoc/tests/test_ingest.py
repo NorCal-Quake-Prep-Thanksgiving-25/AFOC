@@ -78,14 +78,14 @@ def test_load_openai_usage_csv_inserts_usage_events(
         "account",
         "service",
         "cost_usd",
-        "metadata",
+        "attributes",
     ]
 
     events = session.query(UsageEvent).order_by(UsageEvent.id).all()
     assert len(events) == 2
     assert events[0].source == "openai"
     assert events[0].service == "gpt-4"
-    assert events[0].metadata["prompt_tokens"] == 1000
+    assert events[0].attributes["prompt_tokens"] == 1000
 
 
 def test_load_aws_cur_csv_inserts_usage_events(
@@ -123,11 +123,11 @@ def test_load_aws_cur_csv_inserts_usage_events(
 
     assert isinstance(df, pl.DataFrame)
     assert df.shape[0] == 2
-    assert df.select("provider").item() == "aws"
+    assert df.select("provider").to_series().to_list() == ["aws", "aws"]
 
     events = session.query(UsageEvent).order_by(UsageEvent.id).all()
-    assert len(events) == 4  # includes previous test inserts
-    assert events[-1].metadata["line_item_usage_type"] == "BoxUsage:t3.micro"
+    assert len(events) == 2
+    assert events[-1].attributes["line_item_usage_type"] == "BoxUsage:t3.micro"
 
 
 def test_load_generic_usage_csv_allows_custom_mapping(
@@ -170,6 +170,6 @@ def test_load_generic_usage_csv_allows_custom_mapping(
     ]
 
     events = session.query(UsageEvent).order_by(UsageEvent.id).all()
-    assert len(events) == 6
+    assert len(events) == 2
     assert events[-1].source == "custom-provider"
-    assert events[-1].metadata["notes"] == "standard"
+    assert events[-1].attributes["notes"] == "standard"

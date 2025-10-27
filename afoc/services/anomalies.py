@@ -34,9 +34,10 @@ def _prepare_frame(records: Iterable[dict]) -> pd.DataFrame:
     frame = frame.copy()
     frame["ts"] = pd.to_datetime(frame["ts"], utc=False)
     frame.sort_values("ts", inplace=True)
-    frame["provider"].fillna("unknown", inplace=True)
-    frame["account"].fillna("", inplace=True)
-    return frame
+    return frame.assign(
+        provider=frame["provider"].fillna("unknown"),
+        account=frame["account"].fillna(""),
+    )
 
 
 def _apply_isolation_forest(features: pd.DataFrame) -> np.ndarray:
@@ -53,7 +54,10 @@ def _robust_z_scores(values: pd.Series) -> pd.Series:
     median = values.median()
     mad = (np.abs(values - median)).median()
     if mad == 0:
-        return pd.Series(np.zeros(len(values)), index=values.index)
+        std = values.std(ddof=0)
+        if std == 0:
+            return pd.Series(np.zeros(len(values)), index=values.index)
+        return (values - median) / std
     return 0.6745 * (values - median) / mad
 
 
@@ -93,8 +97,13 @@ def detect_anomalies(records: Iterable[dict]) -> List[Anomaly]:
             )
         else:
             scores = np.abs(_robust_z_scores(valid["residual"]))
+            std_dev = valid["residual"].std(ddof=0)
+            if std_dev > 0:
+                std_scores = np.abs(valid["residual"] / std_dev)
+            else:
+                std_scores = pd.Series(np.zeros(len(valid)), index=valid.index)
             method = "robust_z"
-            flags = scores > 3.5
+            flags = (scores > 3.5) | (std_scores > 2.5)
 
         for idx in valid[flags].index:
             row = valid.loc[idx]

@@ -3,8 +3,19 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta
+from pathlib import Path
 
 import pytest
+
+from afoc.config import settings
+
+
+@pytest.fixture(autouse=True)
+def _configure_sqlite(tmp_path: Path) -> None:
+    """Point the API at a temporary SQLite database for isolation."""
+
+    settings.database_url = f"sqlite:///{tmp_path / 'api_tests.sqlite'}"
+
 
 try:  # pragma: no cover - optional dependency guard
     from fastapi.testclient import TestClient
@@ -45,6 +56,29 @@ def test_anomaly_endpoint_returns_detection() -> None:
     data = response.json()
     assert isinstance(data, list)
     assert any(item["scope"]["service"] == "compute" for item in data)
+
+
+@pytest.mark.skipif(
+    TestClient is None or create_app is None, reason="FastAPI not available"
+)
+def test_ingest_upload_accepts_csv() -> None:
+    """Uploading a CSV should result in rows being counted."""
+
+    client = TestClient(create_app())  # type: ignore[operator]
+    csv_content = (
+        "timestamp,project_id,model,cost_usd\n"
+        "2024-01-01T00:00:00Z,proj-a,gpt-4,2.5\n"
+        "2024-01-02T00:00:00Z,proj-a,gpt-4,3.0\n"
+    )
+    response = client.post(
+        "/ingest/upload",
+        params={"kind": "openai"},
+        files={"file": ("usage.csv", csv_content, "text/csv")},
+    )
+    if response.status_code == 503:
+        pytest.skip("ingestion service unavailable in test environment")
+    assert response.status_code == 200
+    assert response.json()["rows_ingested"] == 2
 
 
 @pytest.mark.skipif(
