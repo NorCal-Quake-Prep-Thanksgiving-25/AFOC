@@ -1,9 +1,198 @@
-"""Placeholder ingestion logic for bootstrap phase."""
+"""CSV ingestion utilities for usage data."""
 
-from typing import List
+from __future__ import annotations
+
+from dataclasses import dataclass
+from datetime import datetime
+from decimal import Decimal
+from pathlib import Path
+from typing import Mapping, Sequence
+
+import polars as pl
+from sqlalchemy import create_engine
+from sqlalchemy.orm import Session, sessionmaker
+
+from ..config import settings
+from ..db.models import Base, UsageEvent
 
 
-def load_placeholder_dataset() -> List[dict]:
-    """Return a dummy dataset representing ingested usage events."""
+@dataclass
+class _SessionHandle:
+    """Container describing a managed SQLAlchemy session."""
 
-    return [{"id": 1, "value": 0.0}]
+    session: Session
+    created: bool
+
+
+def _ensure_session(session: Session | None = None) -> _SessionHandle:
+    """Return a usable session, creating one from configuration if needed."""
+
+    if session is not None:
+        return _SessionHandle(session=session, created=False)
+    engine = create_engine(settings.database_url)
+    Base.metadata.create_all(engine)
+    factory = sessionmaker(bind=engine)
+    return _SessionHandle(session=factory(), created=True)
+
+
+def _finalise_session(handle: _SessionHandle, exc: Exception | None) -> None:
+    """Commit/rollback and close sessions created on demand."""
+
+    session = handle.session
+    if handle.created:
+        try:
+            if exc is None:
+                session.commit()
+            else:
+                session.rollback()
+        finally:
+            session.close()
+
+
+def _persist_usage_events(records: pl.DataFrame, session: Session | None = None) -> pl.DataFrame:
+    """Insert the provided usage events into the database."""
+
+    handle = _ensure_session(session)
+    exc: Exception | None = None
+    try:
+        for payload in records.to_dicts():
+            occurred_at = payload.get("occurred_at")
+            if isinstance(occurred_at, str):
+                occurred_at = datetime.fromisoformat(occurred_at)
+            metadata = payload.get("metadata") or {}
+            if payload.get("account"):
+                metadata = {**metadata, "account": payload["account"]}
+            event = UsageEvent(
+                occurred_at=occurred_at,
+                source=payload.get("provider", "unknown"),
+                service=payload["service"],
+                cost=Decimal(str(payload.get("cost_usd", 0.0))),
+                metadata=metadata or None,
+            )
+            handle.session.add(event)
+        handle.session.flush()
+    except Exception as err:  # pragma: no cover - defensive rollback
+        exc = err
+        raise
+    finally:
+        _finalise_session(handle, exc)
+    return records
+
+
+def _read_csv(path: str | Path) -> pl.DataFrame:
+    """Load a CSV file with sensible defaults for timestamps."""
+
+    return pl.read_csv(path, try_parse_dates=True)
+
+
+def load_openai_usage_csv(path: str | Path, session: Session | None = None) -> pl.DataFrame:
+    """Ingest an OpenAI usage export into canonical usage events."""
+
+    raw = _read_csv(path)
+    metadata_cols = [
+        column
+        for column in raw.columns
+        if column
+        not in {"timestamp", "project_id", "model", "cost_usd"}
+    ]
+    structured = (
+        raw.with_columns(
+            pl.col("timestamp").str.strptime(pl.Datetime, strict=False).alias("occurred_at"),
+            pl.lit("openai").alias("provider"),
+            pl.col("project_id").fill_null("default").alias("account"),
+            pl.col("model").alias("service"),
+            pl.col("cost_usd").cast(pl.Float64).alias("cost_usd"),
+            (pl.struct(metadata_cols) if metadata_cols else pl.lit({})).alias("metadata"),
+        )
+        .select(["occurred_at", "provider", "account", "service", "cost_usd", "metadata"])
+        .sort("occurred_at")
+    )
+    return _persist_usage_events(structured, session=session)
+
+
+def load_aws_cur_csv(path: str | Path, session: Session | None = None) -> pl.DataFrame:
+    """Ingest an AWS Cost and Usage Report export."""
+
+    raw = _read_csv(path)
+    metadata_cols = [
+        column
+        for column in raw.columns
+        if column
+        not in {
+            "line_item_usage_start_date",
+            "product_product_name",
+            "line_item_unblended_cost",
+            "line_item_usage_account_id",
+        }
+    ]
+    structured = (
+        raw.with_columns(
+            pl.col("line_item_usage_start_date")
+            .str.strptime(pl.Datetime, strict=False)
+            .alias("occurred_at"),
+            pl.lit("aws").alias("provider"),
+            pl.col("line_item_usage_account_id").fill_null("unknown").alias("account"),
+            pl.col("product_product_name").alias("service"),
+            pl.col("line_item_unblended_cost").cast(pl.Float64).alias("cost_usd"),
+            (pl.struct(metadata_cols) if metadata_cols else pl.lit({})).alias("metadata"),
+        )
+        .select(["occurred_at", "provider", "account", "service", "cost_usd", "metadata"])
+        .sort("occurred_at")
+    )
+    return _persist_usage_events(structured, session=session)
+
+
+def load_generic_usage_csv(
+    path: str | Path,
+    mapping: Mapping[str, str | Sequence[str] | None],
+    session: Session | None = None,
+) -> pl.DataFrame:
+    """Ingest a custom CSV using an explicit column mapping."""
+
+    raw = _read_csv(path)
+    timestamp_key = mapping["timestamp"]  # type: ignore[index]
+    service_key = mapping["service"]  # type: ignore[index]
+    cost_key = mapping["cost"]  # type: ignore[index]
+
+    def _resolve(value: str | Sequence[str] | None, default: str | None = None) -> pl.Expr:
+        if value is None:
+            return pl.lit(default or "")
+        if isinstance(value, str):
+            if value in raw.columns:
+                return pl.col(value)
+            return pl.lit(value)
+        # Sequence of strings representing a struct payload
+        existing = [col for col in value if col in raw.columns]
+        return pl.struct(existing)
+
+    provider_expr = _resolve(mapping.get("provider"), default="custom")
+    account_expr = _resolve(mapping.get("account"))
+    metadata_value = mapping.get("metadata")
+    if metadata_value is None:
+        metadata_cols = [
+            column
+            for column in raw.columns
+            if column
+            not in {timestamp_key, service_key, cost_key}
+            and column != mapping.get("provider")
+            and column != mapping.get("account")
+        ]
+        metadata_expr = pl.struct(metadata_cols) if metadata_cols else pl.lit({})
+    elif isinstance(metadata_value, (list, tuple)):
+        metadata_expr = pl.struct([col for col in metadata_value if col in raw.columns])
+    else:
+        metadata_expr = _resolve(metadata_value)
+
+    structured = (
+        raw.with_columns(
+            pl.col(timestamp_key).str.strptime(pl.Datetime, strict=False).alias("occurred_at"),
+            provider_expr.alias("provider"),
+            account_expr.alias("account"),
+            pl.col(service_key).alias("service"),
+            pl.col(cost_key).cast(pl.Float64).alias("cost_usd"),
+            metadata_expr.alias("metadata"),
+        )
+        .select(["occurred_at", "provider", "account", "service", "cost_usd", "metadata"])
+        .sort("occurred_at")
+    )
+    return _persist_usage_events(structured, session=session)
