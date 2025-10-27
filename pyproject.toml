@@ -1,0 +1,51 @@
+[build-system]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "afoc"
+version = "0.1.0"
+description = "Autonomous Fiscal Orchestration Core"
+authors = [{name = "AFOC Team"}]
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "fastapi",
+    "uvicorn[standard]",
+    "sqlalchemy",
+    "alembic",
+    "psycopg2-binary",
+    "polars",
+    "numpy",
+    "pandas",
+    "pydantic",
+    "pydantic-settings",
+    "scikit-learn",
+    "statsmodels",
+    "prophet",
+    "ortools",
+    "streamlit",
+    "python-dotenv",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+    "coverage",
+    "black",
+    "mypy",
+    "ruff",
+    "pre-commit",
+    "bandit",
+    "pip-audit",
+]
+aws = [
+    "boto3",
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["afoc*"]
+
+[tool.mypy]
+ignore_missing_imports = true

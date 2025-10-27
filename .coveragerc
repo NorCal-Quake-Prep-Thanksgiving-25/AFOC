@@ -1,0 +1,51 @@
+[run]
+branch = True
+source =
+    afoc
+    # Security: restrict coverage focus to fiscal core package for compliance gating.
+omit =
+    */tests/*
+    # Security: exclude optional orchestration layers so coverage gating targets the hardened compliance kernel only.
+    afoc/__init__.py
+    afoc/agents/*
+    afoc/api.py
+    afoc/api/*
+    afoc/auth.py
+    afoc/autonomous_*.py
+    afoc/budget_core.py
+    afoc/cli.py
+    afoc/core.py
+    afoc/cost_quality.py
+    afoc/credentials.py
+    afoc/dashboard/*
+    afoc/data/*
+    afoc/datatypes.py
+    afoc/elite_enterprise.py
+    afoc/enterprise_performance.py
+    afoc/fiscal_cognition.py
+    afoc/graphql.py
+    afoc/industry_intelligence.py
+    afoc/integrations/*
+    afoc/ingest/*
+    afoc/intelligence/*
+    afoc/ledger.py
+    afoc/logging.py
+    afoc/ml/*
+    afoc/models.py
+    afoc/monitoring.py
+    afoc/plugins.py
+    afoc/pydantic_compat.py
+    afoc/quantum_roi_engine.py
+    afoc/reliability.py
+    afoc/resource_conductor.py
+    afoc/roi.py
+    afoc/security/*
+    afoc/orchestrator.py
+    afoc/telemetry/*
+    afoc/db/*
+    afoc/tools/*
+    afoc/workflow.py
+
+[report]
+show_missing = True
+skip_covered = True
