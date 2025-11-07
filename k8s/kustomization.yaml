@@ -1,0 +1,17 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: afoc
+
+resources:
+  - base/namespace.yaml
+  - base/frontend-deployment.yaml
+  - base/frontend-service.yaml
+  - base/services-deployment.yaml
+  - base/services-service.yaml
+  - base/ml-engine-deployment.yaml
+  - base/ml-engine-service.yaml
+
+commonLabels:
+  app.kubernetes.io/name: afoc
+  app.kubernetes.io/managed-by: kustomize

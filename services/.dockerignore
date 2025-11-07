@@ -1,0 +1,10 @@
+vendor
+.git
+.gitignore
+README.md
+.env
+.DS_Store
+*.test
+coverage.txt
+.vscode
+.idea

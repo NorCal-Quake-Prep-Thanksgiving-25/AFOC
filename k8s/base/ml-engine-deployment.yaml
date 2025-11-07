@@ -1,0 +1,44 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: afoc-ml-engine
+  namespace: afoc
+  labels:
+    app: afoc-ml-engine
+    component: ml
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: afoc-ml-engine
+  template:
+    metadata:
+      labels:
+        app: afoc-ml-engine
+        component: ml
+    spec:
+      containers:
+      - name: ml-engine
+        image: afoc-ml-engine:latest
+        ports:
+        - containerPort: 5000
+          name: http
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "500m"
+          limits:
+            memory: "2Gi"
+            cpu: "2000m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 5000
+          initialDelaySeconds: 60
+          periodSeconds: 30
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 5000
+          initialDelaySeconds: 30
+          periodSeconds: 10
