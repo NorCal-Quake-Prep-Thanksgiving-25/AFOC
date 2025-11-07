@@ -1,0 +1,101 @@
+syntax = "proto3";
+
+package afoc.orchestration.v1;
+
+option go_package = "github.com/afoc/proto/gen/orchestration/v1;orchestrationv1";
+
+import "google/protobuf/timestamp.proto";
+
+// OrchestrationService handles autonomous resource management
+service OrchestrationService {
+  // ExecuteAction performs an orchestration action
+  rpc ExecuteAction(ExecuteActionRequest) returns (ExecuteActionResponse);
+
+  // GetRecommendations retrieves optimization recommendations
+  rpc GetRecommendations(GetRecommendationsRequest) returns (GetRecommendationsResponse);
+
+  // ApproveAction approves a pending orchestration action
+  rpc ApproveAction(ApproveActionRequest) returns (ApproveActionResponse);
+}
+
+message ExecuteActionRequest {
+  string action_id = 1;
+  ActionType action_type = 2;
+  string resource_id = 3;
+  map<string, string> parameters = 4;
+  bool dry_run = 5;
+}
+
+message ExecuteActionResponse {
+  string action_id = 1;
+  ActionStatus status = 2;
+  string message = 3;
+  google.protobuf.Timestamp executed_at = 4;
+  double estimated_savings = 5;
+}
+
+message GetRecommendationsRequest {
+  string provider = 1;
+  string account_id = 2;
+  repeated string resource_types = 3;
+  double min_savings_threshold = 4;
+}
+
+message GetRecommendationsResponse {
+  repeated Recommendation recommendations = 1;
+  double total_potential_savings = 2;
+}
+
+message Recommendation {
+  string id = 1;
+  string resource_id = 2;
+  string resource_name = 3;
+  ActionType action_type = 4;
+  string description = 5;
+  double estimated_monthly_savings = 6;
+  double confidence_score = 7;
+  RiskLevel risk_level = 8;
+  map<string, string> parameters = 9;
+  google.protobuf.Timestamp created_at = 10;
+}
+
+message ApproveActionRequest {
+  string recommendation_id = 1;
+  bool approved = 2;
+  string approver = 3;
+}
+
+message ApproveActionResponse {
+  string action_id = 1;
+  ActionStatus status = 2;
+}
+
+enum ActionType {
+  ACTION_TYPE_UNSPECIFIED = 0;
+  ACTION_TYPE_SCALE_UP = 1;
+  ACTION_TYPE_SCALE_DOWN = 2;
+  ACTION_TYPE_RIGHTSIZE = 3;
+  ACTION_TYPE_STOP = 4;
+  ACTION_TYPE_TERMINATE = 5;
+  ACTION_TYPE_MIGRATE_TO_SPOT = 6;
+  ACTION_TYPE_SNAPSHOT = 7;
+  ACTION_TYPE_DELETE_SNAPSHOT = 8;
+  ACTION_TYPE_MODIFY_VOLUME = 9;
+}
+
+enum ActionStatus {
+  ACTION_STATUS_UNSPECIFIED = 0;
+  ACTION_STATUS_PENDING = 1;
+  ACTION_STATUS_APPROVED = 2;
+  ACTION_STATUS_EXECUTING = 3;
+  ACTION_STATUS_COMPLETED = 4;
+  ACTION_STATUS_FAILED = 5;
+  ACTION_STATUS_ROLLED_BACK = 6;
+}
+
+enum RiskLevel {
+  RISK_LEVEL_UNSPECIFIED = 0;
+  RISK_LEVEL_LOW = 1;
+  RISK_LEVEL_MEDIUM = 2;
+  RISK_LEVEL_HIGH = 3;
+}

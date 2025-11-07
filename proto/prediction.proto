@@ -1,0 +1,73 @@
+syntax = "proto3";
+
+package afoc.prediction.v1;
+
+option go_package = "github.com/afoc/proto/gen/prediction/v1;predictionv1";
+
+import "google/protobuf/timestamp.proto";
+
+// PredictionService provides AI/ML-based resource and cost predictions
+service PredictionService {
+  // Predict generates future resource usage and cost predictions
+  rpc Predict(PredictRequest) returns (PredictResponse);
+
+  // TrainModel trains or retrains the ML model
+  rpc TrainModel(TrainModelRequest) returns (TrainModelResponse);
+
+  // GetPredictionAccuracy returns model accuracy metrics
+  rpc GetPredictionAccuracy(GetAccuracyRequest) returns (GetAccuracyResponse);
+}
+
+message PredictRequest {
+  string resource_id = 1;
+  string resource_type = 2;
+  string metric_name = 3;
+  int32 forecast_days = 4;  // 7-30 days
+  string model_type = 5;  // prophet, transformer, arima
+}
+
+message PredictResponse {
+  repeated Prediction predictions = 1;
+  double confidence_score = 2;
+  string model_version = 3;
+  google.protobuf.Timestamp generated_at = 4;
+}
+
+message Prediction {
+  google.protobuf.Timestamp timestamp = 1;
+  double predicted_value = 2;
+  double lower_bound = 3;
+  double upper_bound = 4;
+  string metric_name = 5;
+  map<string, double> feature_importance = 6;
+}
+
+message TrainModelRequest {
+  string model_type = 1;
+  repeated string resource_types = 2;
+  int32 training_window_days = 3;
+  map<string, string> hyperparameters = 4;
+}
+
+message TrainModelResponse {
+  string model_id = 1;
+  string model_version = 2;
+  ModelMetrics metrics = 3;
+  google.protobuf.Timestamp trained_at = 4;
+}
+
+message GetAccuracyRequest {
+  string model_id = 1;
+  int32 evaluation_days = 2;
+}
+
+message GetAccuracyResponse {
+  ModelMetrics metrics = 1;
+}
+
+message ModelMetrics {
+  double mae = 1;  // Mean Absolute Error
+  double mape = 2;  // Mean Absolute Percentage Error
+  double rmse = 3;  // Root Mean Square Error
+  double r2_score = 4;
+}
