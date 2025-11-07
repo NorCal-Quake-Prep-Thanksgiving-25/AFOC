@@ -1,0 +1,308 @@
+# Default values for AFOC platform
+
+global:
+  environment: production
+  domain: afoc.io
+  imageRegistry: ""
+  imagePullSecrets: []
+
+# Metrics Collector Service
+metricsCollector:
+  enabled: true
+  replicaCount: 3
+  image:
+    repository: afoc/metrics-collector
+    tag: "1.0.0"
+    pullPolicy: IfNotPresent
+
+  resources:
+    requests:
+      memory: "256Mi"
+      cpu: "250m"
+    limits:
+      memory: "512Mi"
+      cpu: "500m"
+
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 70
+    targetMemoryUtilizationPercentage: 80
+
+  service:
+    type: ClusterIP
+    port: 8080
+
+  env:
+    DATABASE_URL: "postgresql://afoc:password@postgresql:5432/afoc"
+    NATS_URL: "nats://nats:4222"
+    LOG_LEVEL: "info"
+
+# ML Prediction Engine
+mlEngine:
+  enabled: true
+  replicaCount: 2
+  image:
+    repository: afoc/ml-engine
+    tag: "1.0.0"
+    pullPolicy: IfNotPresent
+
+  resources:
+    requests:
+      memory: "2Gi"
+      cpu: "1000m"
+    limits:
+      memory: "4Gi"
+      cpu: "2000m"
+
+  service:
+    type: ClusterIP
+    port: 8081
+
+# Orchestrator Service
+orchestrator:
+  enabled: true
+  replicaCount: 2
+  image:
+    repository: afoc/orchestrator
+    tag: "1.0.0"
+    pullPolicy: IfNotPresent
+
+  resources:
+    requests:
+      memory: "512Mi"
+      cpu: "500m"
+    limits:
+      memory: "1Gi"
+      cpu: "1000m"
+
+  service:
+    type: ClusterIP
+    port: 8082
+
+# API Gateway
+apiGateway:
+  enabled: true
+  replicaCount: 3
+  image:
+    repository: afoc/api-gateway
+    tag: "1.0.0"
+    pullPolicy: IfNotPresent
+
+  resources:
+    requests:
+      memory: "256Mi"
+      cpu: "250m"
+    limits:
+      memory: "512Mi"
+      cpu: "500m"
+
+  service:
+    type: LoadBalancer
+    port: 443
+    annotations:
+      service.beta.kubernetes.io/aws-load-balancer-type: "nlb"
+      service.beta.kubernetes.io/aws-load-balancer-ssl-cert: ""
+
+# Frontend
+frontend:
+  enabled: true
+  replicaCount: 3
+  image:
+    repository: afoc/frontend
+    tag: "1.0.0"
+    pullPolicy: IfNotPresent
+
+  resources:
+    requests:
+      memory: "128Mi"
+      cpu: "100m"
+    limits:
+      memory: "256Mi"
+      cpu: "200m"
+
+  service:
+    type: ClusterIP
+    port: 80
+
+  ingress:
+    enabled: true
+    className: "nginx"
+    annotations:
+      cert-manager.io/cluster-issuer: "letsencrypt-prod"
+      nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    hosts:
+      - host: app.afoc.io
+        paths:
+          - path: /
+            pathType: Prefix
+    tls:
+      - secretName: afoc-tls
+        hosts:
+          - app.afoc.io
+
+# PostgreSQL (from Bitnami)
+postgresql:
+  enabled: true
+  auth:
+    username: afoc
+    password: ""  # Set via secrets
+    database: afoc
+
+  primary:
+    persistence:
+      enabled: true
+      size: 100Gi
+      storageClass: "gp3"
+
+    resources:
+      requests:
+        memory: "2Gi"
+        cpu: "1000m"
+      limits:
+        memory: "4Gi"
+        cpu: "2000m"
+
+  metrics:
+    enabled: true
+    serviceMonitor:
+      enabled: true
+
+# Redis (from Bitnami)
+redis:
+  enabled: true
+  architecture: replication
+  auth:
+    enabled: true
+    password: ""  # Set via secrets
+
+  master:
+    persistence:
+      enabled: true
+      size: 20Gi
+
+    resources:
+      requests:
+        memory: "512Mi"
+        cpu: "250m"
+      limits:
+        memory: "1Gi"
+        cpu: "500m"
+
+  replica:
+    replicaCount: 2
+    resources:
+      requests:
+        memory: "512Mi"
+        cpu: "250m"
+      limits:
+        memory: "1Gi"
+        cpu: "500m"
+
+# NATS JetStream
+nats:
+  enabled: true
+  nats:
+    jetstream:
+      enabled: true
+      memoryStore:
+        enabled: true
+        size: 5Gi
+      fileStore:
+        enabled: true
+        size: 20Gi
+
+  cluster:
+    enabled: true
+    replicas: 3
+
+  resources:
+    requests:
+      memory: "1Gi"
+      cpu: "500m"
+    limits:
+      memory: "2Gi"
+      cpu: "1000m"
+
+# Prometheus (monitoring)
+prometheus:
+  enabled: true
+  server:
+    retention: "30d"
+    persistentVolume:
+      enabled: true
+      size: 100Gi
+
+    resources:
+      requests:
+        memory: "2Gi"
+        cpu: "1000m"
+      limits:
+        memory: "4Gi"
+        cpu: "2000m"
+
+# Grafana (visualization)
+grafana:
+  enabled: true
+  adminPassword: ""  # Set via secrets
+
+  persistence:
+    enabled: true
+    size: 10Gi
+
+  datasources:
+    datasources.yaml:
+      apiVersion: 1
+      datasources:
+        - name: Prometheus
+          type: prometheus
+          url: http://prometheus-server
+          isDefault: true
+        - name: PostgreSQL
+          type: postgres
+          url: postgresql:5432
+          database: afoc
+          user: afoc
+
+  dashboardProviders:
+    dashboardproviders.yaml:
+      apiVersion: 1
+      providers:
+        - name: 'default'
+          folder: 'AFOC'
+          type: file
+          options:
+            path: /var/lib/grafana/dashboards/default
+
+# Service Account
+serviceAccount:
+  create: true
+  annotations:
+    eks.amazonaws.com/role-arn: ""  # Set to IRSA role ARN
+  name: afoc-service
+
+# Security
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  fsGroup: 1000
+
+securityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+  readOnlyRootFilesystem: true
+
+# Network Policies
+networkPolicy:
+  enabled: true
+  policyTypes:
+    - Ingress
+    - Egress
+
+# Pod Disruption Budget
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1

@@ -1,0 +1,119 @@
+syntax = "proto3";
+
+package afoc.anomaly.v1;
+
+option go_package = "github.com/afoc/proto/gen/anomaly/v1;anomalyv1";
+
+import "google/protobuf/timestamp.proto";
+
+// AnomalyService detects and responds to anomalies
+service AnomalyService {
+  // DetectAnomalies analyzes metrics for anomalies
+  rpc DetectAnomalies(DetectAnomaliesRequest) returns (DetectAnomaliesResponse);
+
+  // GetAnomalies retrieves historical anomalies
+  rpc GetAnomalies(GetAnomaliesRequest) returns (GetAnomaliesResponse);
+
+  // ExecuteRemediationAction performs automated remediation
+  rpc ExecuteRemediationAction(RemediationRequest) returns (RemediationResponse);
+
+  // StreamAnomalies streams real-time anomaly detection
+  rpc StreamAnomalies(StreamAnomaliesRequest) returns (stream Anomaly);
+}
+
+message DetectAnomaliesRequest {
+  string resource_id = 1;
+  string metric_name = 2;
+  google.protobuf.Timestamp start_time = 3;
+  google.protobuf.Timestamp end_time = 4;
+  double sensitivity = 5;  // 0.0 - 1.0
+}
+
+message DetectAnomaliesResponse {
+  repeated Anomaly anomalies = 1;
+  int32 total_anomalies = 2;
+}
+
+message GetAnomaliesRequest {
+  string provider = 1;
+  string account_id = 2;
+  AnomalySeverity min_severity = 3;
+  google.protobuf.Timestamp start_time = 4;
+  google.protobuf.Timestamp end_time = 5;
+}
+
+message GetAnomaliesResponse {
+  repeated Anomaly anomalies = 1;
+}
+
+message StreamAnomaliesRequest {
+  repeated string resource_ids = 1;
+  AnomalySeverity min_severity = 2;
+}
+
+message Anomaly {
+  string id = 1;
+  string resource_id = 2;
+  string metric_name = 3;
+  double actual_value = 4;
+  double expected_value = 5;
+  double anomaly_score = 6;  // 0.0 - 1.0
+  AnomalySeverity severity = 7;
+  AnomalyType type = 8;
+  google.protobuf.Timestamp detected_at = 9;
+  RootCauseAnalysis root_cause = 10;
+  repeated RemediationAction suggested_actions = 11;
+}
+
+message RootCauseAnalysis {
+  string primary_cause = 1;
+  repeated string contributing_factors = 2;
+  double confidence = 3;
+  map<string, string> evidence = 4;
+}
+
+message RemediationRequest {
+  string anomaly_id = 1;
+  string action_id = 2;
+  bool auto_approve = 3;
+}
+
+message RemediationResponse {
+  string remediation_id = 1;
+  RemediationStatus status = 2;
+  string message = 3;
+  google.protobuf.Timestamp executed_at = 4;
+}
+
+message RemediationAction {
+  string id = 1;
+  string action_type = 2;
+  string description = 3;
+  double confidence = 4;
+  bool auto_executable = 5;
+  map<string, string> parameters = 6;
+}
+
+enum AnomalySeverity {
+  ANOMALY_SEVERITY_UNSPECIFIED = 0;
+  ANOMALY_SEVERITY_INFO = 1;
+  ANOMALY_SEVERITY_WARNING = 2;
+  ANOMALY_SEVERITY_CRITICAL = 3;
+}
+
+enum AnomalyType {
+  ANOMALY_TYPE_UNSPECIFIED = 0;
+  ANOMALY_TYPE_COST_SPIKE = 1;
+  ANOMALY_TYPE_PERFORMANCE_DEGRADATION = 2;
+  ANOMALY_TYPE_RESOURCE_EXHAUSTION = 3;
+  ANOMALY_TYPE_UNUSUAL_TRAFFIC = 4;
+  ANOMALY_TYPE_SECURITY_THREAT = 5;
+}
+
+enum RemediationStatus {
+  REMEDIATION_STATUS_UNSPECIFIED = 0;
+  REMEDIATION_STATUS_PENDING = 1;
+  REMEDIATION_STATUS_EXECUTING = 2;
+  REMEDIATION_STATUS_COMPLETED = 3;
+  REMEDIATION_STATUS_FAILED = 4;
+}

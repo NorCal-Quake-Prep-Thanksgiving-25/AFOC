@@ -1,0 +1,90 @@
+syntax = "proto3";
+
+package afoc.metrics.v1;
+
+option go_package = "github.com/afoc/proto/gen/metrics/v1;metricsv1";
+
+import "google/protobuf/timestamp.proto";
+
+// MetricsService handles cloud resource metrics collection
+service MetricsService {
+  // CollectMetrics triggers metrics collection for a cloud provider
+  rpc CollectMetrics(CollectMetricsRequest) returns (CollectMetricsResponse);
+
+  // GetMetrics retrieves historical metrics
+  rpc GetMetrics(GetMetricsRequest) returns (GetMetricsResponse);
+
+  // StreamMetrics streams real-time metrics
+  rpc StreamMetrics(StreamMetricsRequest) returns (stream MetricPoint);
+}
+
+message CollectMetricsRequest {
+  string provider = 1;  // aws, gcp, azure, kubernetes
+  string account_id = 2;
+  repeated string regions = 3;
+  repeated string resource_types = 4;
+}
+
+message CollectMetricsResponse {
+  int32 metrics_collected = 1;
+  google.protobuf.Timestamp collection_time = 2;
+  string job_id = 3;
+}
+
+message GetMetricsRequest {
+  string provider = 1;
+  string resource_id = 2;
+  string metric_name = 3;
+  google.protobuf.Timestamp start_time = 4;
+  google.protobuf.Timestamp end_time = 5;
+}
+
+message GetMetricsResponse {
+  repeated MetricPoint points = 1;
+}
+
+message StreamMetricsRequest {
+  repeated string resource_ids = 1;
+  repeated string metric_names = 2;
+}
+
+message MetricPoint {
+  string resource_id = 1;
+  string resource_type = 2;
+  string metric_name = 3;
+  double value = 4;
+  string unit = 5;
+  google.protobuf.Timestamp timestamp = 6;
+  map<string, string> labels = 7;
+  string provider = 8;
+  string region = 9;
+}
+
+// Resource represents a cloud resource
+message Resource {
+  string id = 1;
+  string name = 2;
+  string type = 3;
+  string provider = 4;
+  string region = 5;
+  string account_id = 6;
+  map<string, string> tags = 7;
+  ResourceState state = 8;
+  google.protobuf.Timestamp created_at = 9;
+  CostInfo cost = 10;
+}
+
+enum ResourceState {
+  RESOURCE_STATE_UNSPECIFIED = 0;
+  RESOURCE_STATE_RUNNING = 1;
+  RESOURCE_STATE_STOPPED = 2;
+  RESOURCE_STATE_TERMINATED = 3;
+  RESOURCE_STATE_PENDING = 4;
+}
+
+message CostInfo {
+  double hourly_cost = 1;
+  double daily_cost = 2;
+  double monthly_cost = 3;
+  string currency = 4;
+}
