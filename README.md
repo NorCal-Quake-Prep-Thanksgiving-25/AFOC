@@ -1,2 +1,7 @@
 # Family-communication-system-tool-for-offline-and-spread-out-families
 This tool is to be used after all service on phones inoperable after the earthquake and for families who have everyone living a couple miles away like Placerville up to Newcastle SO it will be able to get pings from everybody and everybody will see their own pings  and others there will also be a sos for help emergency ping and everyone has 24 hr
+
+## Architecture
+
+- [Visible Cognition Platform — Master Architecture Plan](docs/visible-cognition-platform-master-architecture.md)
+- [Visible Cognition Platform — Product Preview](docs/visible-cognition-platform-preview.md)
